@@ -251,6 +251,7 @@
     <string name="share_qr_nfc">QR code</string>
     <string name="add_profile_methods_scan_qr_code">Scan QR code</string>
     <string name="add_profile_methods_manual_settings">Manual Settings</string>
+    <string name="manual_add">Manual Add</string>
     <plurals name="removed">
         <item quantity="one">Removed</item>
         <item quantity="other">%d items removed</item>
