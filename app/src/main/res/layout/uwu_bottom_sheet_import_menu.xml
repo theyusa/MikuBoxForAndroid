@@ -390,6 +390,134 @@
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
             </LinearLayout>
+            
+            <!-- Manuel Add Section -->
+<com.google.android.material.card.MaterialCardView
+    android:id="@+id/card_manual_add"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="0.0dip"
+    android:layout_marginBottom="8.0dip"
+    app:cardBackgroundColor="?attr/colorCard"
+    app:cardCornerRadius="28.0dip"
+    app:cardElevation="0.0dip">
+    
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        
+        <!-- Manuel Add Header -->
+        <LinearLayout
+            android:id="@+id/manual_add_header"
+            android:background="@drawable/uwu_bg_bot"
+            android:focusable="true"
+            android:clickable="true"
+            android:gravity="center_vertical"
+            android:clipToPadding="false"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="0.0dip"
+            android:layout_marginBottom="0.0dip"
+            android:baselineAligned="false"
+            android:minHeight="?android:listPreferredItemHeightSmall"
+            android:padding="16.0dip">
+            
+            <LinearLayout
+                android:gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0.0dip"
+                android:layout_marginBottom="0.0dip"
+                android:layout_marginStart="8.0dip"
+                android:layout_marginEnd="8.0dip">
+                
+                <LinearLayout
+                    android:background="@drawable/uwu_bg_icon"
+                    android:layout_width="45.0dip"
+                    android:layout_height="45.0dip"
+                    android:layout_marginStart="8.0dip"
+                    android:backgroundTint="?attr/colorPrimary">
+                    
+                    <ImageView
+                        android:gravity="center"
+                        android:layout_width="25.0dip"
+                        android:layout_height="25.0dip"
+                        android:layout_marginTop="10.0dip"
+                        android:src="@drawable/ic_action_note_add"
+                        android:tint="?attr/colorIcon"
+                        android:layout_marginStart="10.0dip" />
+                        
+                </LinearLayout>
+            </LinearLayout>
+            
+            <LinearLayout
+                android:layout_gravity="center_vertical"
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.0"
+                android:layout_marginStart="8.0dip"
+                android:layout_marginEnd="16.0dip">
+                
+                <TextView
+                    android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
+                    android:textSize="17.0sp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:ellipsize="marquee"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Manual Add"
+                    android:singleLine="false" />
+                    
+            </LinearLayout>
+            
+            <LinearLayout
+                android:gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0.0dip"
+                android:layout_marginBottom="0.0dip"
+                android:layout_marginStart="8.0dip"
+                android:layout_marginEnd="16.0dip">
+                
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/expand_arrow_container"
+                    android:layout_width="28.0dip"
+                    android:layout_height="28.0dip"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
+                    app:cardCornerRadius="99.0dip"
+                    app:cardElevation="0.0dip"
+                    app:strokeWidth="0.0dip">
+                    
+                    <ImageView
+                        android:id="@+id/expand_arrow"
+                        android:layout_width="25.0dip"
+                        android:layout_height="25.0dip"
+                        android:layout_marginTop="1.0dip"
+                        android:src="@drawable/uwu_arrow"
+                        android:tint="?attr/colorOnSurfaceVariant"
+                        android:layout_marginStart="2.0dip"
+                        android:rotation="0" />
+                        
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+        </LinearLayout>
+        
+        <!-- Expandable Protocol List (Initially Hidden) -->
+        <LinearLayout
+            android:id="@+id/expandable_protocol_list"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+            
+            <!-- Buraya diğer protocol kartları gelecek (HTTP, SOCKS, VLESS, vb.) -->
+            <!-- Ama şimdilik boş bırakıyoruz, sonra doldururuz -->
+            
+
+
+
           <!-- HorizontalScrollView'i kaldırıp LinearLayout ile değiştiriyoruz -->
 <LinearLayout
     android:orientation="vertical"
@@ -1927,6 +2055,10 @@
 
 <!-- LinearLayout Kapanış Tagı -->
 </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
+
 
         </LinearLayout>
     </ScrollView>
