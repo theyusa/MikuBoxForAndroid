@@ -391,7 +391,33 @@
                 </LinearLayout>
             </LinearLayout>
             
-            <!-- Manuel Add Section -->
+nStart="8.0dip"
+                android:layout_marginEnd="16.0dip">
+                
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/expand_arrow_container"
+                    android:layout_width="28.0dip"
+                    android:layout_height="28.0dip"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
+                    app:cardCornerRadius="99.0dip"
+                    app:cardElevation="0.0dip"
+                    app:strokeWidth="0.0dip">
+                    
+                    <ImageView
+                        android:id="@+id/expand_arrow"
+                        android:layout_width="25.0dip"
+                        android:layout_height="25.0dip"
+                        android:layout_marginTop="1.0dip"
+                        android:src="@drawable/uwu_arrow"
+                        android:tint="?attr/colorOnSurfaceVariant"
+                        android:layout_marginStart="2.0dip"
+                        android:rotation="0" />
+                        
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+        </LinearLayout>
+        
+<!-- Manuel Add Section -->
 <com.google.android.material.card.MaterialCardView
     android:id="@+id/card_manual_add"
     android:layout_width="fill_parent"
@@ -515,9 +541,7 @@
             <!-- Buraya diğer protocol kartları gelecek (HTTP, SOCKS, VLESS, vb.) -->
             <!-- Ama şimdilik boş bırakıyoruz, sonra doldururuz -->
             
-
-
-
+        
           <!-- HorizontalScrollView'i kaldırıp LinearLayout ile değiştiriyoruz -->
 <LinearLayout
     android:orientation="vertical"
