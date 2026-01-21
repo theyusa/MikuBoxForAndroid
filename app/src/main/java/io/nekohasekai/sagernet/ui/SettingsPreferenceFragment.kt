@@ -139,6 +139,40 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }.showBlur()
             true
         }
+        
+        // Auto Switch validation
+        findPreference<EditTextPreference>("auto_switch_check_interval")?.apply {
+            setOnPreferenceChangeListener { _, newValue ->
+                val interval = newValue.toString().toIntOrNull()
+                if (interval != null && interval >= 10) {
+                    true
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "Minimum 10 seconds required",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    false
+                }
+            }
+        }
+        
+        findPreference<EditTextPreference>("auto_switch_max_failures")?.apply {
+            setOnPreferenceChangeListener { _, newValue ->
+                val failures = newValue.toString().toIntOrNull()
+                if (failures != null && failures in 1..10) {
+                    true
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "Must be between 1-10",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    false
+                }
+            }
+        }
+        
         mixedPort.onPreferenceChangeListener = reloadListener
         findPreference<SwitchPreference>(Key.APPEND_HTTP_PROXY)!!.onPreferenceChangeListener = reloadListener
         findPreference<SwitchPreference>(Key.SHOW_DIRECT_SPEED)!!.onPreferenceChangeListener = reloadListener
