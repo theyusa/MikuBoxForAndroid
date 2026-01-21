@@ -1,45 +1,43 @@
 package io.nekohasekai.sagernet.database.preference
 
-import io.nekohasekai.sagernet.database.SagerDatabase
+import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
+import io.nekohasekai.sagernet.SagerNet
 
 object AutoSwitchPreferences {
     
-    private val kvPairDao get() = SagerDatabase.kvPairDao
+    private val prefs: SharedPreferences by lazy {
+        PreferenceManager.getDefaultSharedPreferences(SagerNet.application)
+    }
     
-    var autoSwitchEnabled: Boolean
-        get() = kvPairDao.get("auto_switch_enabled")?.toBoolean() ?: false
-        set(value) {
-            kvPairDao.put("auto_switch_enabled", value.toString())
-        }
+    val autoSwitchEnabled: Boolean
+        get() = prefs.getBoolean("auto_switch_enabled", false)
     
-    var autoSwitchCheckInterval: Int
+    val autoSwitchCheckInterval: Int
         get() {
-            val value = kvPairDao.get("auto_switch_check_interval")?.toIntOrNull() ?: 30
-            return if (value < 10) 30 else value // Minimum 10 saniye
-        }
-        set(value) {
-            val safeValue = if (value < 10) 30 else value
-            kvPairDao.put("auto_switch_check_interval", safeValue.toString())
+            val value = try {
+                prefs.getString("auto_switch_check_interval", "30")?.toIntOrNull() ?: 30
+            } catch (e: Exception) {
+                30
+            }
+            return if (value < 10) 30 else value
         }
     
-    var autoSwitchMaxFailures: Int
+    val autoSwitchMaxFailures: Int
         get() {
-            val value = kvPairDao.get("auto_switch_max_failures")?.toIntOrNull() ?: 3
-            return if (value < 1 || value > 10) 3 else value // 1-10 arası
-        }
-        set(value) {
-            val safeValue = when {
+            val value = try {
+                prefs.getString("auto_switch_max_failures", "3")?.toIntOrNull() ?: 3
+            } catch (e: Exception) {
+                3
+            }
+            return when {
                 value < 1 -> 3
                 value > 10 -> 10
                 else -> value
             }
-            kvPairDao.put("auto_switch_max_failures", safeValue.toString())
         }
     
-    var autoSwitchCheckUrl: String
-        get() = kvPairDao.get("auto_switch_check_url") 
+    val autoSwitchCheckUrl: String
+        get() = prefs.getString("auto_switch_check_url", "https://www.gstatic.com/generate_204")
             ?: "https://www.gstatic.com/generate_204"
-        set(value) {
-            kvPairDao.put("auto_switch_check_url", value)
-        }
 }
