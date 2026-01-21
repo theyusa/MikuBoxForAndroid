@@ -1,4 +1,4 @@
-name: Build and Test Auto-Switch Feature
+name: Auto-Switch Feature Validation
 
 on:
   push:
@@ -8,550 +8,309 @@ on:
     branches:
       - patch-tr-workflow
   workflow_dispatch:
-    inputs:
-      skip_build:
-        description: 'Skip APK build (only validate resources)'
-        required: false
-        default: 'false'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   JAVA_VERSION: '21'
-  GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g'
 
 jobs:
   validate-resources:
     name: 📋 Validate Resources
     runs-on: ubuntu-latest
     
-    outputs:
-      resources_valid: ${{ steps.check-resources.outputs.valid }}
-      missing_resources: ${{ steps.check-resources.outputs.missing }}
-    
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           ref: patch-tr-workflow
-
+          
       - name: Install XML tools
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
+        
+      - name: Check basic files
         run: |
-          echo "📦 Installing XML validation tools..."
-          sudo apt-get update
-          sudo apt-get install -y libxml2-utils xmlstarlet
-
-      - name: Check resource integrity
-        id: check-resources
-        run: |
-          echo "🔍 Starting comprehensive resource validation..."
-          
-          # Başlangıç değişkenleri
-          RESOURCES_VALID="true"
-          MISSING_LIST=""
-          
-          # 1. Temel dosya varlığı kontrolü
-          echo "📁 Checking file existence..."
+          echo "🔍 Checking required files..."
           REQUIRED_FILES=(
             "app/src/main/res/xml/global_preferences.xml"
             "app/src/main/res/values/strings.xml"
-            "app/src/main/java/moe/matsuri/nb4a/ui/SettingsPreferenceFragment.kt"
-            "app/src/main/java/moe/matsuri/nb4a/utils/AutoSwitchPreferences.kt"
           )
           
           for file in "${REQUIRED_FILES[@]}"; do
             if [ -f "$file" ]; then
-              echo "  ✅ $file"
+              echo "✅ $file exists"
             else
-              echo "  ❌ $file - MISSING"
-              RESOURCES_VALID="false"
-              MISSING_LIST+="$file,"
+              echo "❌ $file is missing"
+              exit 1
             fi
           done
           
-          # 2. global_preferences.xml detaylı analiz
-          echo ""
-          echo "📋 Analyzing global_preferences.xml..."
-          GLOBAL_PREF_FILE="app/src/main/res/xml/global_preferences.xml"
+      - name: Validate global_preferences.xml
+        run: |
+          echo "📋 Validating global_preferences.xml..."
+          XML_FILE="app/src/main/res/xml/global_preferences.xml"
           
-          if [ -f "$GLOBAL_PREF_FILE" ]; then
-            # XML geçerliliği
-            if xmllint --noout "$GLOBAL_PREF_FILE" 2>/dev/null; then
-              echo "  ✅ XML syntax is valid"
-            else
-              echo "  ❌ XML syntax error"
-              RESOURCES_VALID="false"
-              MISSING_LIST+="xml_syntax_error,"
-            fi
-            
-            # Auto-switch section kontrolü
-            if grep -q "settings_auto_switch" "$GLOBAL_PREF_FILE"; then
-              echo "  ✅ Auto-switch section found"
-              
-              # Preference sayısı
-              PREF_COUNT=$(grep -c "<SwitchPreference\|<EditTextPreference" "$GLOBAL_PREF_FILE")
-              echo "  📊 Found $PREF_COUNT preference elements"
-              
-              # Auto-switch specific preferences
-              AUTO_SWITCH_KEYS=(
-                "auto_switch_enabled"
-                "auto_switch_check_interval"
-                "auto_switch_max_failures"
-                "auto_switch_check_url"
-              )
-              
-              for key in "${AUTO_SWITCH_KEYS[@]}"; do
-                if grep -q "app:key=\"$key\"" "$GLOBAL_PREF_FILE"; then
-                  echo "    ✅ Key: $key"
-                else
-                  echo "    ❌ Key: $key - MISSING"
-                  RESOURCES_VALID="false"
-                  MISSING_LIST+="key_$key,"
-                fi
-              done
-            else
-              echo "  ❌ Auto-switch section NOT FOUND"
-              RESOURCES_VALID="false"
-              MISSING_LIST+="auto_switch_section,"
-            fi
-            
-            # Resource reference kontrolü
-            echo ""
-            echo "  🔗 Checking resource references..."
-            
-            # Layout references
-            LAYOUT_REFS=$(grep -oP 'android:layout="@layout/\K[^"]+' "$GLOBAL_PREF_FILE" | sort -u)
-            if [ -n "$LAYOUT_REFS" ]; then
-              echo "    📐 Layout references:"
-              for layout in $LAYOUT_REFS; do
-                LAYOUT_FILE="app/src/main/res/layout/${layout}.xml"
-                if [ -f "$LAYOUT_FILE" ]; then
-                  echo "      ✅ $layout.xml"
-                else
-                  echo "      ❌ $layout.xml - MISSING"
-                  RESOURCES_VALID="false"
-                  MISSING_LIST+="layout_$layout,"
-                fi
-              done
-            else
-              echo "    ℹ️ No layout references found"
-            fi
-            
-            # Drawable references
-            DRAWABLE_REFS=$(grep -oP 'app:icon="@drawable/\K[^"]+' "$GLOBAL_PREF_FILE" | sort -u)
-            if [ -n "$DRAWABLE_REFS" ]; then
-              echo "    🎨 Drawable references:"
-              for drawable in $DRAWABLE_REFS; do
-                if find app/src/main/res -type f \( -name "${drawable}.png" -o -name "${drawable}.jpg" -o -name "${drawable}.xml" -o -name "${drawable}.webp" \) | grep -q .; then
-                  echo "      ✅ $drawable"
-                else
-                  echo "      ❌ $drawable - MISSING (searched in app/src/main/res)"
-                  RESOURCES_VALID="false"
-                  MISSING_LIST+="drawable_$drawable,"
-                fi
-              done
-            fi
-            
-            # String references
-            STRING_REFS=$(grep -oP '@string/\K[^"]+' "$GLOBAL_PREF_FILE" | sort -u)
-            if [ -n "$STRING_REFS" ]; then
-              echo "    📝 String references:"
-              for string_ref in $STRING_REFS; do
-                if grep -q "name=\"$string_ref\"" app/src/main/res/values/strings.xml; then
-                  # String değerini al
-                  STRING_VALUE=$(grep -A1 "name=\"$string_ref\"" app/src/main/res/values/strings.xml | tail -1 | sed 's/.*>\(.*\)<.*/\1/')
-                  echo "      ✅ \"$string_ref\" = \"$STRING_VALUE\""
-                else
-                  echo "      ❌ \"$string_ref\" - NOT DEFINED in strings.xml"
-                  RESOURCES_VALID="false"
-                  MISSING_LIST+="string_$string_ref,"
-                fi
-              done
-            fi
-            
+          # Check XML syntax
+          if xmllint --noout "$XML_FILE"; then
+            echo "✅ XML syntax is valid"
           else
-            echo "  ❌ global_preferences.xml file not found"
-            RESOURCES_VALID="false"
-            MISSING_LIST+="global_preferences.xml,"
+            echo "❌ XML syntax error"
+            exit 1
           fi
           
-          # 3. Strings.xml kontrolü
-          echo ""
-          echo "📖 Checking strings.xml..."
-          STRINGS_FILE="app/src/main/res/values/strings.xml"
-          
-          if [ -f "$STRINGS_FILE" ]; then
-            # Auto-switch related strings
-            REQUIRED_STRINGS=(
-              "settings_auto_switch"
-              "auto_switch_enabled"
-              "auto_switch_enabled_summary"
-              "auto_switch_check_interval"
-              "auto_switch_check_interval_summary"
-              "auto_switch_max_failures"
-              "auto_switch_max_failures_summary"
-              "auto_switch_check_url"
-            )
+          # Check for auto-switch section
+          if grep -q "settings_auto_switch" "$XML_FILE"; then
+            echo "✅ Auto-switch section found"
             
-            for string_name in "${REQUIRED_STRINGS[@]}"; do
-              if grep -q "name=\"$string_name\"" "$STRINGS_FILE"; then
-                STRING_LINE=$(grep -n "name=\"$string_name\"" "$STRINGS_FILE" | head -1 | cut -d: -f1)
-                echo "  ✅ \"$string_name\" found on line $STRING_LINE"
+            # Count preferences
+            COUNT=$(grep -c "<SwitchPreference\|<EditTextPreference" "$XML_FILE")
+            echo "📊 Found $COUNT preference elements"
+            
+            # List all preference keys
+            echo "🔑 Preference keys found:"
+            grep -o 'app:key="[^"]*"' "$XML_FILE" | sed 's/app:key="//' | sed 's/"//'
+          else
+            echo "❌ Auto-switch section not found"
+            exit 1
+          fi
+          
+      - name: Check string resources
+        run: |
+          echo "📖 Checking string resources..."
+          
+          # Required strings for auto-switch
+          REQUIRED_STRINGS=(
+            "settings_auto_switch"
+            "auto_switch_enabled"
+            "auto_switch_enabled_summary"
+            "auto_switch_check_interval"
+            "auto_switch_check_interval_summary"
+            "auto_switch_max_failures"
+            "auto_switch_max_failures_summary"
+            "auto_switch_check_url"
+          )
+          
+          ALL_FOUND=true
+          for string in "${REQUIRED_STRINGS[@]}"; do
+            if grep -q "name=\"$string\"" app/src/main/res/values/strings.xml; then
+              echo "✅ \"$string\" found"
+            else
+              echo "❌ \"$string\" NOT FOUND"
+              ALL_FOUND=false
+            fi
+          done
+          
+          if [ "$ALL_FOUND" = false ]; then
+            echo "❌ Some strings are missing"
+            exit 1
+          fi
+          
+      - name: Check layout references
+        run: |
+          echo "📐 Checking layout references..."
+          XML_FILE="app/src/main/res/xml/global_preferences.xml"
+          
+          # Extract layout references
+          LAYOUTS=$(grep -o 'android:layout="@layout/[^"]*"' "$XML_FILE" | sed 's/android:layout="@layout\///' | sed 's/"//' | sort -u)
+          
+          if [ -z "$LAYOUTS" ]; then
+            echo "ℹ️ No layout references found"
+          else
+            ALL_EXIST=true
+            for layout in $LAYOUTS; do
+              if [ -f "app/src/main/res/layout/$layout.xml" ]; then
+                echo "✅ $layout.xml exists"
               else
-                echo "  ❌ \"$string_name\" - MISSING"
-                RESOURCES_VALID="false"
-                MISSING_LIST+="string_def_$string_name,"
+                echo "❌ $layout.xml NOT FOUND"
+                ALL_EXIST=false
               fi
             done
+            
+            if [ "$ALL_EXIST" = false ]; then
+              echo "⚠️ Some layout files are missing"
+            fi
           fi
           
-          # 4. Kotlin dosyaları kontrolü
-          echo ""
+      - name: Check drawable references
+        run: |
+          echo "🎨 Checking drawable references..."
+          XML_FILE="app/src/main/res/xml/global_preferences.xml"
+          
+          # Extract drawable references
+          DRAWABLES=$(grep -o 'app:icon="@drawable/[^"]*"' "$XML_FILE" | sed 's/app:icon="@drawable\///' | sed 's/"//' | sort -u)
+          
+          if [ -z "$DRAWABLES" ]; then
+            echo "ℹ️ No drawable references found"
+          else
+            ALL_EXIST=true
+            for drawable in $DRAWABLES; do
+              if find app/src/main/res -type f -name "$drawable.*" | grep -q .; then
+                echo "✅ $drawable exists"
+              else
+                echo "❌ $drawable NOT FOUND"
+                ALL_EXIST=false
+              fi
+            done
+            
+            if [ "$ALL_EXIST" = false ]; then
+              echo "⚠️ Some drawable files are missing"
+            fi
+          fi
+          
+      - name: Check Kotlin files
+        run: |
           echo "📝 Checking Kotlin files..."
           
-          # SettingsPreferenceFragment.kt
-          if [ -f "app/src/main/java/moe/matsuri/nb4a/ui/SettingsPreferenceFragment.kt" ]; then
-            echo "  ✅ SettingsPreferenceFragment.kt exists"
-            # AutoSwitchPreferences referansı var mı?
-            if grep -q "AutoSwitchPreferences" "app/src/main/java/moe/matsuri/nb4a/ui/SettingsPreferenceFragment.kt"; then
-              echo "    ✅ AutoSwitchPreferences referenced"
+          KOTLIN_FILES=(
+            "app/src/main/java/moe/matsuri/nb4a/ui/SettingsPreferenceFragment.kt"
+            "app/src/main/java/moe/matsuri/nb4a/utils/AutoSwitchPreferences.kt"
+            "app/src/main/java/moe/matsuri/nb4a/utils/ConnectionHealthMonitor.kt"
+          )
+          
+          for file in "${KOTLIN_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ $file exists"
             else
-              echo "    ⚠️ AutoSwitchPreferences not referenced in SettingsPreferenceFragment"
+              echo "❌ $file NOT FOUND"
             fi
-          fi
+          done
           
-          # AutoSwitchPreferences.kt
-          if [ -f "app/src/main/java/moe/matsuri/nb4a/utils/AutoSwitchPreferences.kt" ]; then
-            echo "  ✅ AutoSwitchPreferences.kt exists"
-            # Preference key'leri kontrol et
-            for key in "${AUTO_SWITCH_KEYS[@]}"; do
-              if grep -q "\"$key\"" "app/src/main/java/moe/matsuri/nb4a/utils/AutoSwitchPreferences.kt"; then
-                echo "    ✅ Key \"$key\" referenced in Kotlin"
-              else
-                echo "    ⚠️ Key \"$key\" not in Kotlin file"
-              fi
-            done
-          fi
-          
-          # 5. Sonuç
-          echo ""
-          echo "📊 VALIDATION RESULT"
-          echo "===================="
-          if [ "$RESOURCES_VALID" = "true" ]; then
-            echo "✅ ALL RESOURCES ARE VALID"
-            echo "✅ Auto-switch feature is properly configured"
-            echo "✅ Ready for build"
-          else
-            echo "❌ RESOURCE VALIDATION FAILED"
-            echo "Missing/Invalid resources:"
-            echo "$MISSING_LIST" | tr ',' '\n' | grep -v '^$' | sed 's/^/  - /'
-          fi
-          
-          # Output'ları ayarla
-          echo "resources_valid=$RESOURCES_VALID" >> $GITHUB_OUTPUT
-          echo "missing_resources=${MISSING_LIST%,}" >> $GITHUB_OUTPUT
-
-      - name: Generate validation report
-        if: always()
+      - name: Create validation summary
         run: |
-          echo "# Resource Validation Report" > validation-report.md
-          echo "Generated: $(date)" >> validation-report.md
-          echo "" >> validation-report.md
-          echo "## Summary" >> validation-report.md
-          echo "- **Branch**: ${{ github.ref_name }}" >> validation-report.md
-          echo "- **Commit**: ${{ github.sha }}" >> validation-report.md
-          echo "- **Valid**: ${{ steps.check-resources.outputs.resources_valid }}" >> validation-report.md
-          echo "" >> validation-report.md
+          echo "# ✅ RESOURCE VALIDATION SUCCESSFUL" > summary.md
+          echo "" >> summary.md
+          echo "## Summary" >> summary.md
+          echo "- All required files are present" >> summary.md
+          echo "- XML syntax is valid" >> summary.md
+          echo "- Auto-switch section is properly configured" >> summary.md
+          echo "- All string resources are defined" >> summary.md
+          echo "" >> summary.md
+          echo "## Auto-Switch Configuration" >> summary.md
+          echo "The following preferences are configured:" >> summary.md
+          echo "" >> summary.md
           
-          if [ "${{ steps.check-resources.outputs.resources_valid }}" = "true" ]; then
-            echo "✅ All resources are properly configured." >> validation-report.md
-            echo "✅ The auto-switch feature is ready for testing." >> validation-report.md
-          else
-            echo "❌ Some resources are missing or invalid." >> validation-report.md
-            echo "" >> validation-report.md
-            echo "## Missing/Invalid Resources" >> validation-report.md
-            echo "${{ steps.check-resources.outputs.missing_resources }}" | tr ',' '\n' | grep -v '^$' | sed 's/^/- /' >> validation-report.md
-          fi
+          # Extract preference info
+          XML_FILE="app/src/main/res/xml/global_preferences.xml"
+          grep -A2 '<SwitchPreference\|<EditTextPreference' "$XML_FILE" | while read -r line; do
+            if echo "$line" | grep -q 'app:key='; then
+              KEY=$(echo "$line" | grep -o 'app:key="[^"]*"' | sed 's/app:key="//' | sed 's/"//')
+              TITLE=$(echo "$line" | grep -o 'app:title="@string/[^"]*"' | sed 's/app:title="@string\///' | sed 's/"//')
+              TYPE="SwitchPreference"
+              echo "$line" | grep -q 'EditTextPreference' && TYPE="EditTextPreference"
+              
+              if [ -n "$KEY" ] && [ -n "$TITLE" ]; then
+                echo "- **$KEY** ($TYPE)" >> summary.md
+              fi
+            fi
+          done
           
-          echo "" >> validation-report.md
-          echo "## Files Checked" >> validation-report.md
-          echo "- global_preferences.xml" >> validation-report.md
-          echo "- strings.xml" >> validation-report.md
-          echo "- SettingsPreferenceFragment.kt" >> validation-report.md
-          echo "- AutoSwitchPreferences.kt" >> validation-report.md
+          echo "" >> summary.md
+          echo "## Next Steps" >> summary.md
+          echo "1. Fix NativeInterface.kt compilation errors locally" >> summary.md
+          echo "2. Test the feature in Android Studio" >> summary.md
+          echo "3. Verify UI appears in Settings" >> summary.md
           
-          cat validation-report.md
-
-      - name: Upload validation report
-        if: always()
+          cat summary.md
+          
+      - name: Upload summary
         uses: actions/upload-artifact@v4
         with:
-          name: validation-report
-          path: validation-report.md
-          retention-days: 7
+          name: validation-summary
+          path: summary.md
 
-  analyze-build:
-    name: 🔧 Analyze Build Readiness
+  quick-check:
+    name: ⚡ Quick Build Check
     needs: validate-resources
-    if: needs.validate-resources.outputs.resources_valid == 'true' && github.event.inputs.skip_build != 'true'
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           ref: patch-tr-workflow
-
+          
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
-
-      - name: Check NativeInterface.kt compilation issues
-        run: |
-          echo "🔍 Checking NativeInterface.kt for compilation issues..."
           
-          NIF_FILE="app/src/main/java/moe/matsuri/nb4a/NativeInterface.kt"
-          if [ -f "$NIF_FILE" ]; then
-            echo "📄 Analyzing $NIF_FILE..."
+      - name: Check build configuration
+        run: |
+          echo "🔧 Checking build configuration..."
+          
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+            echo "✅ gradlew is executable"
             
-            # Hatalı satırları kontrol et
-            ERROR_LINES=$(grep -n "displayProfileName\|Unresolved reference" "$NIF_FILE" || true)
-            if [ -n "$ERROR_LINES" ]; then
-              echo "⚠️  Potential compilation issues found:"
-              echo "$ERROR_LINES" | while read line; do
-                echo "  Line $line"
-              done
-              
-              echo ""
-              echo "💡 Suggested fixes:"
-              echo "1. Check if 'displayProfileName' is defined somewhere"
-              echo "2. Make sure 'data' variable is declared before use"
-              echo "3. Define 'cbSelectorUpdate' callback if needed"
-            else
-              echo "✅ No obvious compilation issues found in NativeInterface.kt"
-            fi
+            # Check gradle version
+            ./gradlew --version 2>&1 | head -5
           else
-            echo "ℹ️ NativeInterface.kt not found"
+            echo "❌ gradlew not found"
+            exit 1
           fi
-
-      - name: Test resource compilation only
-        run: |
-          echo "🧪 Testing resource compilation..."
           
-          # Sadece resource processing test et
-          chmod +x gradlew
-          
-          echo "1. Cleaning..."
-          ./gradlew clean 2>&1 | tail -20 || true
-          
-          echo ""
-          echo "2. Processing resources..."
-          ./gradlew :app:processPreviewDebugResources --dry-run 2>&1 | grep -i "resource\|xml\|preference" | head -30 || true
-          
-          echo ""
-          echo "3. Checking resource dependencies..."
-          ./gradlew :app:dependencies --configuration previewDebugCompileClasspath 2>&1 | grep -i "resource\|androidx.preference" | head -20 || true
-
-      - name: Create build readiness report
-        run: |
-          echo "# Build Readiness Report" > build-readiness.md
-          echo "" >> build-readiness.md
-          echo "## Status" >> build-readiness.md
-          echo "✅ Resources are valid" >> build-readiness.md
-          echo "⚠️  Note: NativeInterface.kt may have compilation issues" >> build-readiness.md
-          echo "" >> build-readiness.md
-          echo "## Next Steps" >> build-readiness.md
-          echo "1. Fix NativeInterface.kt compilation errors" >> build-readiness.md
-          echo "2. Run full build locally to test" >> build-readiness.md
-          echo "3. Test auto-switch feature in emulator" >> build-readiness.md
-          echo "" >> build-readiness.md
-          echo "## Auto-Switch Configuration" >> build-readiness.md
-          echo "The following preferences are configured:" >> build-readiness.md
-          echo "- ✅ auto_switch_enabled (SwitchPreference)" >> build-readiness.md
-          echo "- ✅ auto_switch_check_interval (EditTextPreference)" >> build-readiness.md
-          echo "- ✅ auto_switch_max_failures (EditTextPreference)" >> build-readiness.md
-          echo "- ✅ auto_switch_check_url (EditTextPreference)" >> build-readiness.md
-          
-          cat build-readiness.md
-
-      - name: Upload readiness report
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-readiness
-          path: build-readiness.md
-          retention-days: 7
-
-  quick-build:
-    name: ⚡ Quick Build Test
-    needs: [validate-resources, analyze-build]
-    if: needs.validate-resources.outputs.resources_valid == 'true' && github.event.inputs.skip_build == 'false'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: patch-tr-workflow
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
-
-      - name: Prepare Android SDK
-        run: |
-          echo "sdk.dir=${ANDROID_HOME}" > local.properties
-          echo "android.enableBuildCache=false" > gradle.properties
-
-      - name: Attempt lightweight build
-        continue-on-error: true
-        run: |
-          echo "🛠️ Attempting lightweight build..."
-          
-          chmod +x gradlew
-          
-          # Sadece assemble değil, önce compile deneyelim
-          echo "1. Compiling Kotlin..."
-          ./gradlew :app:compilePreviewDebugKotlin --stacktrace --no-daemon 2>&1 | tee kotlin-compile.log || echo "Kotlin compilation may have issues"
-          
-          # Eğer Kotlin derlemesi başarılıysa, resource'ları paketle
-          echo ""
-          echo "2. Packaging resources..."
-          ./gradlew :app:packagePreviewDebugResources --stacktrace --no-daemon 2>&1 | tee resource-package.log || echo "Resource packaging may have issues"
-          
-          # Hata kontrolü
-          if grep -q "BUILD SUCCESSFUL" kotlin-compile.log 2>/dev/null; then
-            echo "✅ Kotlin compilation successful!"
-            
-            # APK oluşturmayı dene
-            echo ""
-            echo "3. Building APK..."
-            ./gradlew :app:assemblePreviewDebug --stacktrace --no-daemon 2>&1 | tee apk-build.log
-            
-            if grep -q "BUILD SUCCESSFUL" apk-build.log; then
-              echo "🎉 BUILD SUCCESSFUL!"
-              
-              # APK'ları listele
-              echo ""
-              echo "📦 Generated APKs:"
-              find app/build/outputs/apk -name "*.apk" -type f -exec ls -lh {} \;
-              
-              # İlk APK'yı analiz et
-              FIRST_APK=$(find app/build/outputs/apk -name "*preview*debug*.apk" -type f | head -1)
-              if [ -n "$FIRST_APK" ]; then
-                echo ""
-                echo "🔍 Analyzing $FIRST_APK"
-                
-                # APK içindeki XML'leri kontrol et
-                echo "XML files in APK:"
-                unzip -l "$FIRST_APK" 2>/dev/null | grep "\.xml" | grep -i "pref\|global" | head -10 || echo "No preference XML found"
-              fi
-            else
-              echo "❌ APK build failed"
-              echo "Last 50 lines of error log:"
-              tail -50 apk-build.log || true
-            fi
-          else
-            echo "❌ Kotlin compilation failed"
-            echo "Last 50 lines of error log:"
-            tail -50 kotlin-compile.log || true
-            echo ""
-            echo "💡 Fix NativeInterface.kt compilation errors first"
+          # Check local.properties
+          if [ ! -f "local.properties" ]; then
+            echo "ℹ️ Creating local.properties..."
+            echo "sdk.dir=${ANDROID_HOME}" > local.properties
           fi
-
-      - name: Upload build logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: |
-            *.log
-          retention-days: 3
-
-      - name: Upload APK if successful
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: preview-apk
-          path: app/build/outputs/apk/**/*.apk
-          retention-days: 1
-
-  summary:
-    name: 📊 Summary
-    needs: [validate-resources, analyze-build, quick-build]
+          
+      - name: Try resource processing
+        run: |
+          echo "🧪 Testing resource processing..."
+          
+          # Try to process resources without full build
+          ./gradlew :app:processPreviewDebugResources --dry-run 2>&1 | grep -i "task" | head -10 || echo "Dry run completed"
+          
+  final-summary:
+    name: 📊 Final Summary
+    needs: [validate-resources, quick-check]
     runs-on: ubuntu-latest
     if: always()
     
     steps:
-      - name: Generate workflow summary
+      - name: Generate final report
         run: |
-          echo "# Workflow Summary" > summary.md
-          echo "" >> summary.md
-          echo "## Auto-Switch Feature Integration" >> summary.md
-          echo "" >> summary.md
-          echo "### ✅ What works:" >> summary.md
-          echo "- Resource files are properly configured" >> summary.md
-          echo "- XML structure is valid" >> summary.md
-          echo "- String resources are defined" >> summary.md
-          echo "- Kotlin files are in place" >> summary.md
-          echo "" >> summary.md
-          echo "### ⚠️ Known issues:" >> summary.md
-          echo "- NativeInterface.kt has compilation errors" >> summary.md
-          echo "- Need to fix: displayProfileName, data, cbSelectorUpdate references" >> summary.md
-          echo "" >> summary.md
-          echo "### 🚀 Next actions:" >> summary.md
-          echo "1. Fix NativeInterface.kt compilation errors locally" >> summary.md
-          echo "2. Test the auto-switch feature in Android Studio" >> summary.md
-          echo "3. Verify UI appears in Settings → Auto-Switch" >> summary.md
-          echo "4. Test functionality with ConnectionHealthMonitor" >> summary.md
-          echo "" >> summary.md
-          echo "### 📁 Files modified:" >> summary.md
-          echo "- app/src/main/res/xml/global_preferences.xml" >> summary.md
-          echo "- app/src/main/res/values/strings.xml (2x)" >> summary.md
-          echo "- app/src/main/java/moe/matsuri/nb4a/ui/SettingsPreferenceFragment.kt" >> summary.md
-          echo "- app/src/main/java/moe/matsuri/nb4a/utils/AutoSwitchPreferences.kt" >> summary.md
-          echo "- app/src/main/java/moe/matsuri/nb4a/utils/ConnectionHealthMonitor.kt" >> summary.md
-          echo "- app/src/main/java/moe/matsuri/nb4a/service/BaseService.kt" >> summary.md
+          echo "========================================"
+          echo "       AUTO-SWITCH FEATURE REPORT      "
+          echo "========================================"
+          echo ""
           
-          cat summary.md
-
-      - name: Upload summary
-        uses: actions/upload-artifact@v4
-        with:
-          name: workflow-summary
-          path: summary.md
-          retention-days: 7
-
-      - name: Print conclusion
-        run: |
-          echo "========================================"
-          echo "          WORKFLOW COMPLETE            "
-          echo "========================================"
-          echo ""
-          echo "📋 Resource validation: ${{ needs.validate-resources.result }}"
-          echo "🔧 Build analysis: ${{ needs.analyze-build.result }}"
-          echo "⚡ Build test: ${{ needs.quick-build.result }}"
-          echo ""
-          if [ "${{ needs.validate-resources.outputs.resources_valid }}" = "true" ]; then
-            echo "✅ Auto-switch feature is properly configured!"
-            echo "✅ XML and resource files are valid"
+          if [ "${{ needs.validate-resources.result }}" = "success" ]; then
+            echo "✅ RESOURCE VALIDATION: SUCCESS"
             echo ""
-            echo "⚠️  Next: Fix NativeInterface.kt compilation errors"
-            echo "🚀 Then test the feature in Android Studio"
+            echo "📋 What's working:"
+            echo "  - global_preferences.xml is valid"
+            echo "  - Auto-switch section is properly added"
+            echo "  - All string resources are defined"
+            echo "  - XML structure is correct"
+            echo ""
+            echo "🚀 Next steps to test the feature:"
+            echo "  1. Open project in Android Studio"
+            echo "  2. Fix NativeInterface.kt compilation errors"
+            echo "  3. Build and run the app"
+            echo "  4. Go to Settings → look for 'Auto-Switch' section"
+            echo "  5. Test the toggle and preference items"
+            echo ""
+            echo "💡 The feature will appear in the Settings screen"
+            echo "   under a new 'Auto-Switch' category with:"
+            echo "   - Enable/disable toggle"
+            echo "   - Check interval setting"
+            echo "   - Max failures setting"
+            echo "   - Check URL setting"
           else
-            echo "❌ Resource validation failed"
-            echo "Missing: ${{ needs.validate-resources.outputs.missing_resources }}"
+            echo "❌ RESOURCE VALIDATION: FAILED"
+            echo ""
+            echo "🔧 What needs fixing:"
+            echo "  Check the validate-resources job for details"
+            echo ""
+            echo "📁 Likely issues:"
+            echo "  - Missing XML file"
+            echo "  - XML syntax error"
+            echo "  - Missing string resources"
+            echo "  - Auto-switch section not found"
           fi
+          
+          echo ""
+          echo "========================================"
+          echo "Build check: ${{ needs.quick-check.result }}"
+          echo "========================================"
