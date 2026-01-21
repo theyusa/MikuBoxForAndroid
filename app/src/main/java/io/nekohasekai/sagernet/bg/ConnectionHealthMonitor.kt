@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
+import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.database.ProxyEntity
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.database.preference.AutoSwitchPreferences
 import io.nekohasekai.sagernet.ktx.Logs
@@ -21,6 +23,8 @@ class ConnectionHealthMonitor(private val context: Context) {
     private var isMonitoring = false
     private var failureCount = 0
     private var currentProfileId = 0L
+    private var allAvailableProfiles = listOf<ProxyEntity>()
+    private var currentProfileIndex = 0
     
     companion object {
         private const val TAG = "ConnectionHealthMonitor"
@@ -37,6 +41,10 @@ class ConnectionHealthMonitor(private val context: Context) {
         currentProfileId = profileId
         isMonitoring = true
         failureCount = 0
+        
+        // Tüm kullanılabilir profilleri yükle
+        loadAllAvailableProfiles()
+        
         scheduleNextCheck()
     }
     
@@ -45,6 +53,35 @@ class ConnectionHealthMonitor(private val context: Context) {
         isMonitoring = false
         handler.removeCallbacksAndMessages(null)
         failureCount = 0
+        allAvailableProfiles = emptyList()
+    }
+    
+    private fun loadAllAvailableProfiles() {
+        try {
+            // TÜM profilleri al (tüm gruplardan/aboneliklerden)
+            allAvailableProfiles = SagerDatabase.proxyDao.all().filter { profile ->
+                // Sadece aktif ve kullanılabilir profilleri filtrele
+                try {
+                    // Boş veya geçersiz profilleri filtrele
+                    profile.id > 0 && 
+                    !profile.name.isNullOrBlank() &&
+                    profile.type != null
+                } catch (e: Exception) {
+                    Logs.e("$TAG: Error filtering profile ${profile.id}: ${e.message}")
+                    false
+                }
+            }
+            
+            // Mevcut profilin indexini bul
+            currentProfileIndex = allAvailableProfiles.indexOfFirst { it.id == currentProfileId }
+            if (currentProfileIndex == -1) currentProfileIndex = 0
+            
+            Logs.i("$TAG: Loaded ${allAvailableProfiles.size} available profiles")
+            
+        } catch (e: Exception) {
+            Logs.e("$TAG: Error loading profiles: ${e.message}", e)
+            allAvailableProfiles = emptyList()
+        }
     }
     
     private fun scheduleNextCheck() {
@@ -123,64 +160,114 @@ class ConnectionHealthMonitor(private val context: Context) {
     private suspend fun switchToNextProfile() {
         withContext(Dispatchers.Main) {
             try {
-                // Mevcut profili getir
-                val currentProfile = SagerDatabase.proxyDao.getById(currentProfileId)
-                if (currentProfile == null) {
-                    Logs.e("$TAG: Current profile not found")
+                // Profil listesini yeniden yükle (güncel olmayabilir)
+                loadAllAvailableProfiles()
+                
+                if (allAvailableProfiles.isEmpty()) {
+                    Logs.e("$TAG: No profiles available for switching")
+                    showToast("Kullanılabilir başka sunucu yok")
                     return@withContext
                 }
                 
-                // Aynı gruptaki tüm profilleri al
-                val groupId = currentProfile.groupId
-                val profiles = SagerDatabase.proxyDao.getByGroup(groupId)
-                
-                if (profiles.isEmpty()) {
-                    Logs.e("$TAG: No profiles found in group")
-                    return@withContext
-                }
-                
-                if (profiles.size == 1) {
-                    Logs.w("$TAG: Only one profile in group, cannot switch")
+                if (allAvailableProfiles.size == 1) {
+                    Logs.w("$TAG: Only one profile available, cannot switch")
                     showToast("Başka sunucu yok, değiştirilemiyor")
                     return@withContext
                 }
                 
-                // Mevcut profil indexini bul
-                val currentIndex = profiles.indexOfFirst { it.id == currentProfileId }
+                // Sonraki profili seç (circular rotation)
+                currentProfileIndex = (currentProfileIndex + 1) % allAvailableProfiles.size
+                val nextProfile = allAvailableProfiles[currentProfileIndex]
                 
-                if (currentIndex == -1) {
-                    Logs.e("$TAG: Current profile not found in list")
-                    return@withContext
-                }
+                // Güvenli isim alma
+                val profileName = getProfileDisplayName(nextProfile)
+                val currentProfileName = allAvailableProfiles.find { it.id == currentProfileId }?.let {
+                    getProfileDisplayName(it)
+                } ?: "Unknown"
                 
-                // Sonraki profili seç (circular: son profildeyse başa dön)
-                val nextIndex = (currentIndex + 1) % profiles.size
-                val nextProfile = profiles[nextIndex]
-                
-                Logs.i("$TAG: Switching from profile ${currentProfileId} to ${nextProfile.id} (${nextProfile.name})")
+                Logs.i("$TAG: Switching from '$currentProfileName' (${currentProfileId}) to '$profileName' (${nextProfile.id})")
                 
                 // Servisi durdur
-                BaseService.stopService()
+                try {
+                    BaseService.stopService()
+                } catch (e: Exception) {
+                    Logs.e("$TAG: Error stopping service: ${e.message}")
+                }
+                
                 delay(1500) // 1.5 saniye bekle
                 
                 // Yeni profili seç
-                SagerDatabase.selectedProxy = nextProfile.id
-                currentProfileId = nextProfile.id
+                try {
+                    DataStore.selectedProxy = nextProfile.id
+                    currentProfileId = nextProfile.id
+                } catch (e: Exception) {
+                    Logs.e("$TAG: Error setting selected proxy: ${e.message}")
+                    // Alternatif yöntem
+                    SagerDatabase.selectedProxy = nextProfile.id
+                    currentProfileId = nextProfile.id
+                }
                 
                 // Servisi yeniden başlat
-                BaseService.startService()
+                try {
+                    BaseService.startService()
+                } catch (e: Exception) {
+                    Logs.e("$TAG: Error starting service: ${e.message}")
+                }
+                
                 delay(2000) // 2 saniye bekle servis başlasın
                 
                 // Hata sayacını sıfırla
                 failureCount = 0
                 
                 // Bildirim göster
-                showToast("Sunucu değiştirildi: ${nextProfile.name}")
+                showToast("Sunucu değiştirildi: $profileName")
                 
             } catch (e: Exception) {
                 Logs.e("$TAG: Error switching profile: ${e.message}", e)
-                showToast("Sunucu değiştirme hatası: ${e.message}")
+                showToast("Sunucu değiştirme hatası")
+                
+                // Hata olsa bile listeyi yeniden yükle
+                try {
+                    loadAllAvailableProfiles()
+                } catch (e2: Exception) {
+                    Logs.e("$TAG: Error reloading profiles: ${e2.message}")
+                }
             }
+        }
+    }
+    
+    /**
+     * Profil için güvenli görünen isim döndürür
+     * Öncelik sırası: name -> displayName() -> remarks -> "Server #id"
+     */
+    private fun getProfileDisplayName(profile: ProxyEntity): String {
+        return try {
+            when {
+                // Önce name alanını kontrol et
+                !profile.name.isNullOrBlank() -> profile.name!!
+                
+                // displayName() fonksiyonu varsa kullan
+                else -> {
+                    try {
+                        val displayName = profile.displayName()
+                        if (!displayName.isNullOrBlank()) displayName else "Server #${profile.id}"
+                    } catch (e: Exception) {
+                        // displayName() yoksa veya hata verirse remarks'i dene
+                        try {
+                            if (!profile.remarks.isNullOrBlank()) {
+                                profile.remarks!!
+                            } else {
+                                "Server #${profile.id}"
+                            }
+                        } catch (e2: Exception) {
+                            "Server #${profile.id}"
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Logs.e("$TAG: Error getting profile display name: ${e.message}")
+            "Server #${profile.id}"
         }
     }
     
