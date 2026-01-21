@@ -1,316 +1,224 @@
-name: Auto-Switch Feature Validation
+name: Build and Release
 
 on:
   push:
     branches:
-      - patch-tr-workflow
+      - main
   pull_request:
-    branches:
-      - patch-tr-workflow
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g., v1.0.0) - Leave empty for artifacts only'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   JAVA_VERSION: '21'
+  GO_VERSION: '^1.25'
 
 jobs:
-  validate-resources:
-    name: 📋 Validate Resources
+  build-libcore:
+    name: Build LibCore (Native)
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: patch-tr-workflow
-          
-      - name: Install XML tools
-        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
-        
-      - name: Check basic files
+          fetch-depth: 0
+
+      - name: Generate status files for cache
         run: |
-          echo "🔍 Checking required files..."
-          REQUIRED_FILES=(
-            "app/src/main/res/xml/global_preferences.xml"
-            "app/src/main/res/values/strings.xml"
-          )
-          
-          for file in "${REQUIRED_FILES[@]}"; do
-            if [ -f "$file" ]; then
-              echo "✅ $file exists"
-            else
-              echo "❌ $file is missing"
-              exit 1
-            fi
-          done
-          
-      - name: Validate global_preferences.xml
+          find buildScript libcore/*.sh -type f 2>/dev/null | xargs cat | sha1sum > golang_status || echo "no-buildscript" > golang_status
+          git ls-files libcore 2>/dev/null | xargs cat | sha1sum > libcore_status || echo "no-libcore" > libcore_status
+      - name: Restore LibCore cache
+        id: cache-libcore
+        uses: actions/cache@v4
+        with:
+          path: app/libs/libcore.aar
+          key: libcore-${{ runner.os }}-${{ hashFiles('golang_status', 'libcore_status') }}
+
+      - name: Setup Golang
+        if: steps.cache-libcore.outputs.cache-hit != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build LibCore
+        if: steps.cache-libcore.outputs.cache-hit != 'true'
         run: |
-          echo "📋 Validating global_preferences.xml..."
-          XML_FILE="app/src/main/res/xml/global_preferences.xml"
-          
-          # Check XML syntax
-          if xmllint --noout "$XML_FILE"; then
-            echo "✅ XML syntax is valid"
-          else
-            echo "❌ XML syntax error"
-            exit 1
-          fi
-          
-          # Check for auto-switch section
-          if grep -q "settings_auto_switch" "$XML_FILE"; then
-            echo "✅ Auto-switch section found"
-            
-            # Count preferences
-            COUNT=$(grep -c "<SwitchPreference\|<EditTextPreference" "$XML_FILE")
-            echo "📊 Found $COUNT preference elements"
-            
-            # List all preference keys
-            echo "🔑 Preference keys found:"
-            grep -o 'app:key="[^"]*"' "$XML_FILE" | sed 's/app:key="//' | sed 's/"//'
-          else
-            echo "❌ Auto-switch section not found"
-            exit 1
-          fi
-          
-      - name: Check string resources
-        run: |
-          echo "📖 Checking string resources..."
-          
-          # Required strings for auto-switch
-          REQUIRED_STRINGS=(
-            "settings_auto_switch"
-            "auto_switch_enabled"
-            "auto_switch_enabled_summary"
-            "auto_switch_check_interval"
-            "auto_switch_check_interval_summary"
-            "auto_switch_max_failures"
-            "auto_switch_max_failures_summary"
-            "auto_switch_check_url"
-          )
-          
-          ALL_FOUND=true
-          for string in "${REQUIRED_STRINGS[@]}"; do
-            if grep -q "name=\"$string\"" app/src/main/res/values/strings.xml; then
-              echo "✅ \"$string\" found"
-            else
-              echo "❌ \"$string\" NOT FOUND"
-              ALL_FOUND=false
-            fi
-          done
-          
-          if [ "$ALL_FOUND" = false ]; then
-            echo "❌ Some strings are missing"
-            exit 1
-          fi
-          
-      - name: Check layout references
-        run: |
-          echo "📐 Checking layout references..."
-          XML_FILE="app/src/main/res/xml/global_preferences.xml"
-          
-          # Extract layout references
-          LAYOUTS=$(grep -o 'android:layout="@layout/[^"]*"' "$XML_FILE" | sed 's/android:layout="@layout\///' | sed 's/"//' | sort -u)
-          
-          if [ -z "$LAYOUTS" ]; then
-            echo "ℹ️ No layout references found"
-          else
-            ALL_EXIST=true
-            for layout in $LAYOUTS; do
-              if [ -f "app/src/main/res/layout/$layout.xml" ]; then
-                echo "✅ $layout.xml exists"
-              else
-                echo "❌ $layout.xml NOT FOUND"
-                ALL_EXIST=false
-              fi
-            done
-            
-            if [ "$ALL_EXIST" = false ]; then
-              echo "⚠️ Some layout files are missing"
-            fi
-          fi
-          
-      - name: Check drawable references
-        run: |
-          echo "🎨 Checking drawable references..."
-          XML_FILE="app/src/main/res/xml/global_preferences.xml"
-          
-          # Extract drawable references
-          DRAWABLES=$(grep -o 'app:icon="@drawable/[^"]*"' "$XML_FILE" | sed 's/app:icon="@drawable\///' | sed 's/"//' | sort -u)
-          
-          if [ -z "$DRAWABLES" ]; then
-            echo "ℹ️ No drawable references found"
-          else
-            ALL_EXIST=true
-            for drawable in $DRAWABLES; do
-              if find app/src/main/res -type f -name "$drawable.*" | grep -q .; then
-                echo "✅ $drawable exists"
-              else
-                echo "❌ $drawable NOT FOUND"
-                ALL_EXIST=false
-              fi
-            done
-            
-            if [ "$ALL_EXIST" = false ]; then
-              echo "⚠️ Some drawable files are missing"
-            fi
-          fi
-          
-      - name: Check Kotlin files
-        run: |
-          echo "📝 Checking Kotlin files..."
-          
-          KOTLIN_FILES=(
-            "app/src/main/java/moe/matsuri/nb4a/ui/SettingsPreferenceFragment.kt"
-            "app/src/main/java/moe/matsuri/nb4a/utils/AutoSwitchPreferences.kt"
-            "app/src/main/java/moe/matsuri/nb4a/utils/ConnectionHealthMonitor.kt"
-          )
-          
-          for file in "${KOTLIN_FILES[@]}"; do
-            if [ -f "$file" ]; then
-              echo "✅ $file exists"
-            else
-              echo "❌ $file NOT FOUND"
-            fi
-          done
-          
-      - name: Create validation summary
-        run: |
-          echo "# ✅ RESOURCE VALIDATION SUCCESSFUL" > summary.md
-          echo "" >> summary.md
-          echo "## Summary" >> summary.md
-          echo "- All required files are present" >> summary.md
-          echo "- XML syntax is valid" >> summary.md
-          echo "- Auto-switch section is properly configured" >> summary.md
-          echo "- All string resources are defined" >> summary.md
-          echo "" >> summary.md
-          echo "## Auto-Switch Configuration" >> summary.md
-          echo "The following preferences are configured:" >> summary.md
-          echo "" >> summary.md
-          
-          # Extract preference info
-          XML_FILE="app/src/main/res/xml/global_preferences.xml"
-          grep -A2 '<SwitchPreference\|<EditTextPreference' "$XML_FILE" | while read -r line; do
-            if echo "$line" | grep -q 'app:key='; then
-              KEY=$(echo "$line" | grep -o 'app:key="[^"]*"' | sed 's/app:key="//' | sed 's/"//')
-              TITLE=$(echo "$line" | grep -o 'app:title="@string/[^"]*"' | sed 's/app:title="@string\///' | sed 's/"//')
-              TYPE="SwitchPreference"
-              echo "$line" | grep -q 'EditTextPreference' && TYPE="EditTextPreference"
-              
-              if [ -n "$KEY" ] && [ -n "$TITLE" ]; then
-                echo "- **$KEY** ($TYPE)" >> summary.md
-              fi
-            fi
-          done
-          
-          echo "" >> summary.md
-          echo "## Next Steps" >> summary.md
-          echo "1. Fix NativeInterface.kt compilation errors locally" >> summary.md
-          echo "2. Test the feature in Android Studio" >> summary.md
-          echo "3. Verify UI appears in Settings" >> summary.md
-          
-          cat summary.md
-          
-      - name: Upload summary
+          chmod +x run
+          ./run lib core
+      - name: Upload LibCore artifact
         uses: actions/upload-artifact@v4
         with:
-          name: validation-summary
-          path: summary.md
+          name: libcore-aar
+          path: app/libs/libcore.aar
+          retention-days: 1
 
-  quick-check:
-    name: ⚡ Quick Build Check
-    needs: validate-resources
+  build-apk:
+    name: Build APK (Unsigned)
+    needs: build-libcore
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: patch-tr-workflow
-          
+          fetch-depth: 0
+
+      - name: Generate status files
+        run: |
+          find buildScript libcore/*.sh -type f 2>/dev/null | xargs cat | sha1sum > golang_status || echo "no-buildscript" > golang_status
+          git ls-files libcore 2>/dev/null | xargs cat | sha1sum > libcore_status || echo "no-libcore" > libcore_status
+      - name: Restore LibCore cache
+        uses: actions/cache@v4
+        with:
+          path: app/libs/libcore.aar
+          key: libcore-${{ runner.os }}-${{ hashFiles('golang_status', 'libcore_status') }}
+
+      - name: Download LibCore artifact (fallback)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: libcore-aar
+          path: app/libs/
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
-          
-      - name: Check build configuration
+          cache: 'gradle'
+
+      - name: Restore Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+      - name: Configure Android SDK
         run: |
-          echo "🔧 Checking build configuration..."
+          echo "sdk.dir=${ANDROID_HOME}" > local.properties
+      - name: Suppress Java deprecation warnings
+        run: |
+          echo "android.javaCompile.suppressSourceTargetDeprecationWarning=true" >> gradle.properties
+      - name: Build APK (Debug/Unsigned)
+        env:
+          BUILD_PLUGIN: none
+          _JAVA_OPTIONS: "-Xmx3g -XX:MaxMetaspaceSize=512m"
+        run: |
+          chmod +x gradlew
+          chmod +x run
+          ./run init action gradle
           
-          if [ -f "gradlew" ]; then
-            chmod +x gradlew
-            echo "✅ gradlew is executable"
-            
-            # Check gradle version
-            ./gradlew --version 2>&1 | head -5
-          else
-            echo "❌ gradlew not found"
+          # Build all variants
+          ./gradlew app:assemblePreviewDebug \
+            --no-daemon \
+            --parallel \
+            --build-cache \
+            --stacktrace
+          
+          # Verify APK creation
+          echo "🔍 Searching for APK files..."
+          find app/build/outputs/apk -type f -name "*.apk"
+          
+          APK_COUNT=$(find app/build/outputs/apk -type f -name "*.apk" | wc -l)
+          if [ "$APK_COUNT" -eq 0 ]; then
+            echo "❌ ERROR: No APK files generated!"
             exit 1
           fi
           
-          # Check local.properties
-          if [ ! -f "local.properties" ]; then
-            echo "ℹ️ Creating local.properties..."
-            echo "sdk.dir=${ANDROID_HOME}" > local.properties
-          fi
-          
-      - name: Try resource processing
+          echo "✅ Successfully built $APK_COUNT APK(s)"
+      - name: List APK details
         run: |
-          echo "🧪 Testing resource processing..."
-          
-          # Try to process resources without full build
-          ./gradlew :app:processPreviewDebugResources --dry-run 2>&1 | grep -i "task" | head -10 || echo "Dry run completed"
-          
-  final-summary:
-    name: 📊 Final Summary
-    needs: [validate-resources, quick-check]
-    runs-on: ubuntu-latest
-    if: always()
-    
-    steps:
-      - name: Generate final report
+          echo "📦 APK Files:"
+          find app/build/outputs/apk -type f -name "*.apk" -exec ls -lh {} \;
+      - name: Prepare APK files
         run: |
-          echo "========================================"
-          echo "       AUTO-SWITCH FEATURE REPORT      "
-          echo "========================================"
-          echo ""
+          mkdir -p release-apks
+          find app/build/outputs/apk -type f -name "*.apk" -exec cp {} release-apks/ \;
           
-          if [ "${{ needs.validate-resources.result }}" = "success" ]; then
-            echo "✅ RESOURCE VALIDATION: SUCCESS"
-            echo ""
-            echo "📋 What's working:"
-            echo "  - global_preferences.xml is valid"
-            echo "  - Auto-switch section is properly added"
-            echo "  - All string resources are defined"
-            echo "  - XML structure is correct"
-            echo ""
-            echo "🚀 Next steps to test the feature:"
-            echo "  1. Open project in Android Studio"
-            echo "  2. Fix NativeInterface.kt compilation errors"
-            echo "  3. Build and run the app"
-            echo "  4. Go to Settings → look for 'Auto-Switch' section"
-            echo "  5. Test the toggle and preference items"
-            echo ""
-            echo "💡 The feature will appear in the Settings screen"
-            echo "   under a new 'Auto-Switch' category with:"
-            echo "   - Enable/disable toggle"
-            echo "   - Check interval setting"
-            echo "   - Max failures setting"
-            echo "   - Check URL setting"
-          else
-            echo "❌ RESOURCE VALIDATION: FAILED"
-            echo ""
-            echo "🔧 What needs fixing:"
-            echo "  Check the validate-resources job for details"
-            echo ""
-            echo "📁 Likely issues:"
-            echo "  - Missing XML file"
-            echo "  - XML syntax error"
-            echo "  - Missing string resources"
-            echo "  - Auto-switch section not found"
-          fi
-          
-          echo ""
-          echo "========================================"
-          echo "Build check: ${{ needs.quick-check.result }}"
-          echo "========================================"
+          echo "📦 Prepared APKs:"
+          ls -lh release-apks/
+      # ============================================
+      # ARTIFACTS UPLOAD (No ZIP, direct APKs)
+      # ============================================
+      - name: Upload APKs as artifacts
+        if: github.event.inputs.release_tag == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-apks
+          path: release-apks/*.apk
+          retention-days: 7
+          compression-level: 0
+
+      # ============================================
+      # GITHUB RELEASE (Direct APKs)
+      # ============================================
+      - name: Create GitHub Release
+        if: github.event.inputs.release_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          name: Release ${{ github.event.inputs.release_tag }}
+          body: |
+            ## 🚀 Release ${{ github.event.inputs.release_tag }}
+            
+            ### 📱 Download APKs
+            **Note**: These are unsigned debug builds.
+            
+            Choose the APK for your device:
+            - **arm64-v8a** - Modern 64-bit ARM devices (Most common) ⭐
+            - **armeabi-v7a** - Older 32-bit ARM devices
+            - **x86** - Intel/AMD 32-bit devices
+            - **x86_64** - Intel/AMD 64-bit devices  
+            - **universal** - Works on all architectures (larger size)
+            
+            ### ℹ️ Build Information
+            - **Commit**: `${{ github.sha }}`
+            - **Branch**: `${{ github.ref_name }}`
+            - **Build Date**: ${{ github.event.repository.updated_at }}
+            - **Java**: ${{ env.JAVA_VERSION }}
+            - **Go**: ${{ env.GO_VERSION }}
+            
+            ### 📝 Installation Instructions
+            1. Download the APK for your device architecture
+            2. Enable "Install from Unknown Sources" in Android settings
+            3. Open the APK file to install
+            
+            ### ⚠️ Important Notes
+            - These are **unsigned debug builds**
+            - Not signed with any keystore
+            - May show security warnings during installation (this is normal)
+            - For production use, please build signed release versions
+            
+            > **Tip**: If unsure which version to download, use the `universal` variant
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: release-apks/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release summary
+        if: github.event.inputs.release_tag != ''
+        run: |
+          echo "✅ Release created successfully!"
+          echo "🏷️ Tag: ${{ github.event.inputs.release_tag }}"
+          echo "📦 APKs uploaded to GitHub Releases"
+          echo "🔗 View at: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.event.inputs.release_tag }}"
+      - name: Clean up
+        if: always()
+        run: |
+          rm -rf release-apks
