@@ -1,0 +1,349 @@
+name: Build and Release y
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g., v1.0.0) - Leave empty for artifacts only'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '21'
+  GO_VERSION: '^1.25'
+
+jobs:
+  build-libcore:
+    name: Build LibCore (Native)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate status files for cache
+        run: |
+          find buildScript libcore/*.sh -type f 2>/dev/null | xargs cat | sha1sum > golang_status || echo "no-buildscript" > golang_status
+          git ls-files libcore 2>/dev/null | xargs cat | sha1sum > libcore_status || echo "no-libcore" > libcore_status
+
+      - name: Restore LibCore cache
+        id: cache-libcore
+        uses: actions/cache@v4
+        with:
+          path: app/libs/libcore.aar
+          key: libcore-${{ runner.os }}-${{ hashFiles('golang_status', 'libcore_status') }}
+
+      - name: Setup Golang
+        if: steps.cache-libcore.outputs.cache-hit != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build LibCore
+        if: steps.cache-libcore.outputs.cache-hit != 'true'
+        run: |
+          chmod +x run
+          ./run lib core
+
+      - name: Upload LibCore artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libcore-aar
+          path: app/libs/libcore.aar
+          retention-days: 1
+
+  build-apk:
+    name: Build APK (Unsigned)
+    needs: build-libcore
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate global_preferences.xml
+        run: |
+          echo "🔍 Validating global_preferences.xml..."
+          
+          # Dosya var mı kontrol et
+          if [ -f "app/src/main/res/xml/global_preferences.xml" ]; then
+            echo "✅ global_preferences.xml exists"
+            echo "📄 File size: $(stat -c%s app/src/main/res/xml/global_preferences.xml) bytes"
+            
+            # İçeriği göster (ilk 30 satır)
+            echo "📋 File content (first 30 lines):"
+            head -30 app/src/main/res/xml/global_preferences.xml
+            
+            # XML geçerliliğini kontrol et
+            if command -v xmllint &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y libxml2-utils
+              xmllint --noout app/src/main/res/xml/global_preferences.xml && echo "✅ XML is valid" || echo "❌ XML is invalid"
+            fi
+            
+            # Git diff ile değişiklikleri göster
+            echo "📝 Git diff for global_preferences.xml:"
+            git diff HEAD~1 -- app/src/main/res/xml/global_preferences.xml 2>/dev/null || echo "No previous commit to compare"
+          else
+            echo "❌ global_preferences.xml not found!"
+            echo "📁 Available XML files in res:"
+            find app/src/main/res -name "*.xml" | head -10
+            exit 1
+          fi
+
+      - name: Generate status files
+        run: |
+          find buildScript libcore/*.sh -type f 2>/dev/null | xargs cat | sha1sum > golang_status || echo "no-buildscript" > golang_status
+          git ls-files libcore 2>/dev/null | xargs cat | sha1sum > libcore_status || echo "no-libcore" > libcore_status
+
+      - name: Restore LibCore cache
+        uses: actions/cache@v4
+        with:
+          path: app/libs/libcore.aar
+          key: libcore-${{ runner.os }}-${{ hashFiles('golang_status', 'libcore_status') }}
+
+      - name: Download LibCore artifact (fallback)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: libcore-aar
+          path: app/libs/
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Clean Gradle cache completely
+        run: |
+          echo "🧹 Cleaning all Gradle caches..."
+          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/wrapper/
+          rm -rf .gradle/
+          rm -rf app/build/
+          
+          # Ayrıca clean komutlarını çalıştır
+          chmod +x gradlew
+          ./gradlew clean 2>/dev/null || true
+          ./gradlew cleanBuildCache 2>/dev/null || true
+
+      - name: Configure build for resource debugging
+        run: |
+          echo "⚙️ Configuring build for resource debugging..."
+          
+          # Debug ayarlarını gradle.properties'e ekle
+          cat >> gradle.properties << EOF
+          # Resource debugging
+          android.enableResourceOptimizations=false
+          android.debug.resource.merging=verbose
+          android.enableBuildCache=false
+          org.gradle.caching=false
+          # Build performance
+          org.gradle.parallel=true
+          org.gradle.configureondemand=true
+          org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
+          EOF
+          
+          echo "📋 Current gradle.properties:"
+          cat gradle.properties | head -20
+
+      - name: Configure Android SDK
+        run: |
+          echo "sdk.dir=${ANDROID_HOME}" > local.properties
+
+      - name: Suppress Java deprecation warnings
+        run: |
+          echo "android.javaCompile.suppressSourceTargetDeprecationWarning=true" >> gradle.properties
+
+      - name: Build APK with verbose resource logging
+        env:
+          BUILD_PLUGIN: none
+          _JAVA_OPTIONS: "-Xmx3g -XX:MaxMetaspaceSize=512m -Dorg.gradle.console=verbose"
+        run: |
+          chmod +x gradlew
+          chmod +x run
+          
+          # Önce resource processing debug
+          echo "🔧 Processing resources with debug info..."
+          ./gradlew app:processPreviewDebugResources --info 2>&1 | grep -E "(global_preferences|xml|preference|resource)" | head -50 || true
+          
+          # Build komutunu çalıştır
+          ./run init action gradle
+          
+          echo "🏗️ Building APK with detailed logging..."
+          ./gradlew app:assemblePreviewDebug \
+            --no-daemon \
+            --parallel \
+            --stacktrace \
+            --info \
+            -Pandroid.verbose=true \
+            -Pandroid.debug.obsoleteApi=true \
+            -Pandroid.debug.resource.merging=verbose \
+            2>&1 | tee build.log
+          
+          # Hata kontrolü
+          if grep -q "BUILD FAILED" build.log; then
+            echo "❌ BUILD FAILED - Checking for errors..."
+            grep -A 10 -B 10 "error:" build.log || true
+            grep -A 10 -B 10 "failed" build.log || true
+            exit 1
+          fi
+          
+          echo "✅ Build completed"
+
+      - name: Check built resources
+        run: |
+          echo "🔍 Checking built resources..."
+          
+          # Intermediates'de XML dosyalarını ara
+          echo "📁 Looking for compiled XML files..."
+          find app/build/intermediates -name "*.xml" -type f 2>/dev/null | grep -i "global\|pref" | head -10 || echo "No preference XML found in intermediates"
+          
+          # Packaged resources'ı kontrol et
+          if [ -d "app/build/intermediates/packaged_res" ]; then
+            echo "📦 Packaged resources structure:"
+            find app/build/intermediates/packaged_res -name "global_preferences.xml" -type f | head -5
+          fi
+
+      - name: List and verify APK files
+        run: |
+          echo "📦 APK Files created:"
+          find app/build/outputs/apk -type f -name "*.apk" -exec ls -lh {} \;
+          
+          APK_COUNT=$(find app/build/outputs/apk -type f -name "*.apk" | wc -l)
+          if [ "$APK_COUNT" -eq 0 ]; then
+            echo "❌ ERROR: No APK files generated!"
+            echo "📁 Checking build directory..."
+            find app/build -type f -name "*.apk" 2>/dev/null
+            exit 1
+          fi
+          
+          echo "✅ Successfully built $APK_COUNT APK(s)"
+          
+          # İlk APK'yı kontrol et
+          FIRST_APK=$(find app/build/outputs/apk -type f -name "*.apk" | head -1)
+          echo "🔍 Checking contents of: $FIRST_APK"
+          
+          # APK içindeki XML dosyalarını listele
+          echo "📄 XML files in APK:"
+          unzip -l "$FIRST_APK" 2>/dev/null | grep "\.xml" | grep -i "pref\|global" | head -10 || echo "No preference XML found in APK"
+          
+          # res/xml dizini var mı kontrol et
+          echo "📁 Checking for res/xml directory in APK..."
+          unzip -l "$FIRST_APK" 2>/dev/null | grep "res/xml/" || echo "res/xml/ not found in APK"
+
+      - name: Prepare APK files
+        run: |
+          mkdir -p release-apks
+          find app/build/outputs/apk -type f -name "*.apk" -exec cp {} release-apks/ \;
+          
+          echo "📦 Prepared APKs:"
+          ls -lh release-apks/
+          
+          # Her APK için özet bilgi
+          for apk in release-apks/*.apk; do
+            echo "📱 $apk:"
+            unzip -l "$apk" 2>/dev/null | grep -E "(res/xml/|AndroidManifest.xml)" | head -5 || true
+            echo "---"
+          done
+
+      # ============================================
+      # ARTIFACTS UPLOAD (No ZIP, direct APKs)
+      # ============================================
+      - name: Upload APKs as artifacts
+        if: github.event.inputs.release_tag == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-apks
+          path: release-apks/*.apk
+          retention-days: 7
+          compression-level: 0
+
+      - name: Upload build log
+        if: github.event.inputs.release_tag == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build.log
+          retention-days: 1
+
+      # ============================================
+      # GITHUB RELEASE (Direct APKs)
+      # ============================================
+      - name: Create GitHub Release
+        if: github.event.inputs.release_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          name: Release ${{ github.event.inputs.release_tag }}
+          body: |
+            ## 🚀 Release ${{ github.event.inputs.release_tag }}
+            
+            ### 📱 Download APKs
+            **Note**: These are unsigned debug builds.
+            
+            Choose the APK for your device:
+            - **arm64-v8a** - Modern 64-bit ARM devices (Most common) ⭐
+            - **armeabi-v7a** - Older 32-bit ARM devices
+            - **x86** - Intel/AMD 32-bit devices
+            - **x86_64** - Intel/AMD 64-bit devices  
+            - **universal** - Works on all architectures (larger size)
+            
+            ### ℹ️ Build Information
+            - **Commit**: `${{ github.sha }}`
+            - **Branch**: `${{ github.ref_name }}`
+            - **Build Date**: ${{ github.event.repository.updated_at }}
+            - **Java**: ${{ env.JAVA_VERSION }}
+            - **Go**: ${{ env.GO_VERSION }}
+            
+            ### 📝 Installation Instructions
+            1. Download the APK for your device architecture
+            2. Enable "Install from Unknown Sources" in Android settings
+            3. Open the APK file to install
+            
+            ### ⚠️ Important Notes
+            - These are **unsigned debug builds**
+            - Not signed with any keystore
+            - May show security warnings during installation (this is normal)
+            - For production use, please build signed release versions
+            
+            > **Tip**: If unsure which version to download, use the `universal` variant
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: |
+            release-apks/*.apk
+            build.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release summary
+        if: github.event.inputs.release_tag != ''
+        run: |
+          echo "✅ Release created successfully!"
+          echo "🏷️ Tag: ${{ github.event.inputs.release_tag }}"
+          echo "📦 APKs uploaded to GitHub Releases"
+          echo "📝 Build log included"
+          echo "🔗 View at: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.event.inputs.release_tag }}"
+
+      - name: Clean up
+        if: always()
+        run: |
+          rm -rf release-apks
+          rm -f build.log
