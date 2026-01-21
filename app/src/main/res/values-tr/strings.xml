@@ -822,4 +822,13 @@ Android için bir sing-box istemcisi."</string>
     <string name="uwu_greeting_evening">İyi akşamlar...</string>
     <string name="uwu_greeting_night">İyi geceler...</string>
     <string name="uwu_greeting_late_night">"Uyku vakti geldi..."</string>
+
+    <string name="settings_auto_switch">Otomatik Sunucu Değiştirme</string>
+    <string name="auto_switch_enabled">Otomatik Sunucu Değiştir</string>
+    <string name="auto_switch_enabled_summary">Bağlantı koptuğunda otomatik olarak sonraki sunucuya geç</string>
+    <string name="auto_switch_check_interval">Kontrol Aralığı (saniye)</string>
+    <string name="auto_switch_check_interval_summary">Bağlantı kontrolü yapma sıklığı</string>
+    <string name="auto_switch_max_failures">Maksimum Hata Sayısı</string>
+    <string name="auto_switch_max_failures_summary">Sunucu değiştirmeden önce izin verilen başarısız deneme</string>
+    <string name="auto_switch_check_url">Kontrol URL</string>
 </resources>
