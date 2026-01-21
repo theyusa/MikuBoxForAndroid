@@ -895,4 +895,13 @@ A sing-box client for Android."</string>
     <string name="uwu_greeting_evening">Good evening...</string>
     <string name="uwu_greeting_night">Good night...</string>
     <string name="uwu_greeting_late_night">"It's time to go to sleep..."</string>
+
+    <string name="settings_auto_switch">Auto Server Switch</string>
+    <string name="auto_switch_enabled">Auto Switch Server</string>
+    <string name="auto_switch_enabled_summary">Automatically switch to next server when connection fails</string>
+    <string name="auto_switch_check_interval">Check Interval (seconds)</string>
+    <string name="auto_switch_check_interval_summary">How often to check connection health</string>
+    <string name="auto_switch_max_failures">Maximum Failures</string>
+    <string name="auto_switch_max_failures_summary">Failed attempts allowed before switching server</string>
+    <string name="auto_switch_check_url">Check URL</string>
 </resources>
