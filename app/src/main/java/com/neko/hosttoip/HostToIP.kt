@@ -4,18 +4,56 @@ import android.os.Bundle
 import android.widget.*
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.ui.ThemedActivity
-import kotlinx.coroutines.*
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.InetAddress
-import java.net.URL
+import java.util.HashMap
+import com.neko.hosttoip.RequestNetwork
+import com.neko.hosttoip.RequestNetwork.RequestListener
 
 class HostToIP : ThemedActivity() {
 
     private lateinit var hostInput: EditText
     private lateinit var resolveButton: Button
     private lateinit var resultText: TextView
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+
+    private val requestNetwork: RequestNetwork by lazy { RequestNetwork(this) }
+
+    private val requestListener = object : RequestNetwork.RequestListener {
+        override fun onResponse(tag: String, response: String, responseHeaders: HashMap<String, Any>) {
+            try {
+                val json = JSONObject(response)
+                
+                val status = json.optString("status")
+
+                if (status == "success") {
+                    val ip = json.optString("query")
+                    val country = json.optString("country", "Unknown")
+                    val city = json.optString("city", "Unknown")
+                    
+                    val ispName = json.optString("isp", json.optString("org", "Unknown"))
+
+                    val displayText = getString(
+                        R.string.hip_result_format,
+                        hostInput.text.toString(),
+                        ip,
+                        country,
+                        city,
+                        ispName
+                    )
+
+                    resultText.text = displayText
+                } else {
+                    val msg = json.optString("message", "Unknown Error")
+                    resultText.text = "API Failed: $msg"
+                }
+            } catch (e: Exception) {
+                resultText.text = "Parse Error: ${e.message}"
+            }
+        }
+
+        override fun onErrorResponse(tag: String, message: String) {
+            resultText.text = "Network Error: $message"
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,84 +81,15 @@ class HostToIP : ThemedActivity() {
     }
 
     private fun resolveHostInfo(host: String) {
-        coroutineScope.launch {
-            resultText.text = getString(R.string.hip_resolving)
-            
-            val result = withContext(Dispatchers.IO) {
-                try {
-                    val ipAddress = InetAddress.getByName(host).hostAddress
-                    val info = getIpDetails(ipAddress)
+        resultText.text = getString(R.string.hip_resolving)
 
-                    getString(
-                        R.string.hip_result_format,
-                        host,
-                        ipAddress,
-                        info["country"],
-                        info["city"],
-                        info["isp"]
-                    )
-                } catch (e: Exception) {
-                    getString(R.string.hip_error_generic, e.localizedMessage)
-                }
-            }
-            resultText.text = result
-        }
-    }
+        val url = "http://ip-api.com/json/$host"
 
-    private fun getIpDetails(ip: String?): Map<String, String> {
-        val unknownText = getString(R.string.hip_unknown)
-
-        if (ip == null) {
-             return mapOf(
-                "country" to unknownText,
-                "city" to unknownText,
-                "isp" to unknownText
-            )
-        }
-
-        try {
-            val url = URL("http://ip-api.com/json/$ip")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
-            connection.requestMethod = "GET"
-            connection.connect()
-
-            val response = connection.inputStream.bufferedReader().readText()
-            val json = JSONObject(response)
-
-            return if (json.getString("status") == "success") {
-                mapOf(
-                    "country" to json.optString("country", unknownText),
-                    "city" to json.optString("city", unknownText),
-                    "isp" to json.optString("isp", unknownText)
-                )
-            } else {
-                mapOf(
-                    "country" to unknownText,
-                    "city" to unknownText,
-                    "isp" to unknownText
-                )
-            }
-        } catch (e: Exception) {
-            return mapOf(
-                "country" to unknownText,
-                "city" to unknownText,
-                "isp" to unknownText
-            )
-        }
-    }
-    
-    override fun onResume() {
-        super.onResume()
-    }
-
-    override fun onPause() {
-        super.onPause()
-    }
-
-    override fun onDestroy() {
-        coroutineScope.cancel()
-        super.onDestroy()
+        requestNetwork.startRequestNetwork(
+            RequestNetworkController.GET,
+            url,
+            "TAG_CHECK_IP",
+            requestListener
+        )
     }
 }
