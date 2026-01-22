@@ -1,7 +1,5 @@
 package io.nekohasekai.sagernet.ui
 
-import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -9,9 +7,6 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.SparseBooleanArray
 import android.view.KeyEvent
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Filter
@@ -25,10 +20,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.appbar.CollapsingToolbarLayout
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.snackbar.Snackbar
 import com.simplecityapps.recyclerview_fastscroll.views.FastScrollRecyclerView
 import io.nekohasekai.sagernet.BuildConfig
@@ -47,9 +38,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
-import android.widget.ImageView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
+import io.nekohasekai.sagernet.ui.bottomsheet.AppListMenuBottomSheet
+import io.nekohasekai.sagernet.ui.toolbar.AppListMenuController
 
 class AppListActivity : ThemedActivity(),
     AppListMenuBottomSheet.OnOptionClickListener {
@@ -170,6 +160,8 @@ class AppListActivity : ThemedActivity(),
     private var loader: Job? = null
     private var apps = emptyList<ProxiedApp>()
     private val appsAdapter = AppsAdapter()
+    
+    private lateinit var menuController: AppListMenuController
 
     private fun initProxiedUids(str: String = DataStore.routePackages) {
         proxiedUids.clear()
@@ -217,12 +209,11 @@ class AppListActivity : ThemedActivity(),
         binding.toolbar.setNavigationIcon(R.drawable.ic_navigation_close)
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        binding.toolbar.inflateMenu(R.menu.app_list_menu)
-
-        binding.toolbar.setOnMenuItemClickListener {
-            AppListMenuBottomSheet().show(supportFragmentManager, AppListMenuBottomSheet.TAG)
-            true
-        }
+        menuController = AppListMenuController(
+            toolbar = binding.toolbar,
+            fragmentManager = supportFragmentManager,
+            listener = this
+        )
         
         binding.collapsingToolbar.title = getString(R.string.select_apps)
 
@@ -244,6 +235,13 @@ class AppListActivity : ThemedActivity(),
         }
 
         loadApps()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::menuController.isInitialized) {
+            menuController.refresh()
+        }
     }
 
     private var sysApps = false
@@ -325,85 +323,5 @@ class AppListActivity : ThemedActivity(),
     override fun onDestroy() {
         loader?.cancel()
         super.onDestroy()
-    }
-}
-
-class AppListMenuBottomSheet : BottomSheetDialogFragment() {
-
-    interface OnOptionClickListener {
-        fun onOptionClicked(viewId: Int)
-    }
-
-    private var mListener: OnOptionClickListener? = null
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        if (context is OnOptionClickListener) {
-            mListener = context
-        } else {
-            throw RuntimeException("$context must implement OnOptionClickListener")
-        }
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.uwu_bottom_sheet_app_manager_menu, container, false)
-    }
-    
-    override fun onStart() {
-        super.onStart()
-        val sheetDialog = dialog as? BottomSheetDialog
-        sheetDialog?.behavior?.apply {
-            state = BottomSheetBehavior.STATE_EXPANDED
-            skipCollapsed = true
-        }
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        
-        val bannerImageView = view.findViewById<ImageView>(R.id.img_banner_sheet)
-
-        if (bannerImageView != null) {
-            bannerImageView.setImageResource(R.drawable.uwu_banner_image_about)
-
-            val savedUriString = DataStore.configurationStore.getString("custom_sheet_banner_uri", null)
-
-            if (!savedUriString.isNullOrBlank()) {
-                Glide.with(this)
-                    .load(savedUriString)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .dontAnimate()
-                    .into(bannerImageView)
-            }
-        }
-        
-        val clickListener = View.OnClickListener {
-            mListener?.onOptionClicked(it.id)
-            dismiss()
-        }
-
-        val actionIds = listOf(
-            R.id.action_invert_selections,
-            R.id.action_clear_selections,
-            R.id.action_export_clipboard,
-            R.id.action_import_clipboard
-        )
-
-        actionIds.forEach { id ->
-            view.findViewById<View>(id)?.setOnClickListener(clickListener)
-        }
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        mListener = null
-    }
-
-    companion object {
-        const val TAG = "AppListMenuBottomSheet"
     }
 }

@@ -11,18 +11,21 @@ import com.google.android.material.card.MaterialCardView
 import io.nekohasekai.sagernet.R 
 
 class ExpandableLayout(context: Context, attrs: AttributeSet?) : LinearLayout(context, attrs), View.OnClickListener {
-    private lateinit var arrowIcon: ImageView
-    private lateinit var cardExpandable: MaterialCardView
-    private lateinit var expandableContent: ExpandableView
+    
+    private var arrowIcon: ImageView? = null
+    private var cardExpandable: MaterialCardView? = null
+    private var expandableContent: ExpandableView? = null
 
     override fun onFinishInflate() {
         super.onFinishInflate()
+        
         expandableContent = findViewById(R.id.expandable_view)
         arrowIcon = findViewById(R.id.arrow_button)
         cardExpandable = findViewById(R.id.card_expandable)
         
-        cardExpandable.setOnClickListener(this)
-        arrowIcon.setOnClickListener(this)
+        cardExpandable?.setOnClickListener(this)
+        arrowIcon?.setOnClickListener(this)
+        
         initializeLogic()
     }
 
@@ -31,22 +34,27 @@ class ExpandableLayout(context: Context, attrs: AttributeSet?) : LinearLayout(co
     }
 
     private fun setOnclick(view: View) {
-        if (expandableContent.isExpanded) {
-            expandableContent.collapse()
-            arrowIcon.animate().setDuration(300L).rotation(0.0f)
-            return
+        expandableContent?.let { content ->
+            if (content.isExpanded) {
+                content.collapse()
+                arrowIcon?.animate()?.setDuration(300L)?.rotation(0.0f)
+            } else {
+                content.expand()
+                arrowIcon?.animate()?.setDuration(300L)?.rotation(90.0f)
+            }
         }
-        expandableContent.expand()
-        arrowIcon.animate().setDuration(300L).rotation(90.0f)
     }
 
     private fun initializeLogic() {
-        arrowIcon.background = RippleDrawable(ColorStateList(arrayOf(intArrayOf()), intArrayOf(-0x8a8a8b)), null, null)
-        arrowIcon.isClickable = true
-        if (expandableContent.isExpanded) {
-            arrowIcon.rotation = 90.0f
-        } else {
-            arrowIcon.rotation = 0.0f
+        arrowIcon?.apply {
+            background = RippleDrawable(
+                ColorStateList(arrayOf(intArrayOf()), intArrayOf(-0x8a8a8b)), 
+                null, 
+                null
+            )
+            isClickable = true
+            
+            rotation = if (expandableContent?.isExpanded == true) 90.0f else 0.0f
         }
     }
 }

@@ -8,7 +8,7 @@
         app:key="key_check_update"
         android:title="@string/update"
         android:summary="@string/update_summary"
-        app:icon="@drawable/ic_update" />
+        app:icon="@drawable/ic_update" />    
 
     <PreferenceCategory
         app:title="@string/theme_category">
@@ -179,9 +179,36 @@
 
     <PreferenceCategory
         app:title="@string/banner_sheet_category">
+        
+        <SwitchPreference
+            android:layout="@layout/uwu_top_switch"
+            android:widgetLayout="@layout/uwu_switch"
+            android:key="disable_bottom_sheet"
+            android:title="@string/pref_disable_bottom_sheet_fragment_title"
+            android:summary="@string/pref_disable_bottom_sheet_summary"
+            android:defaultValue="false"
+            app:icon="@drawable/ic_toggle_switch" />
+            
+        <SwitchPreference
+            android:layout="@layout/uwu_mid_switch"
+            android:widgetLayout="@layout/uwu_switch"
+            android:key="disable_bottom_sheet_home"
+            android:title="@string/pref_disable_bottom_sheet_home_title"
+            android:summary="@string/pref_disable_bottom_sheet_summary"
+            android:defaultValue="false"
+            app:icon="@drawable/ic_toggle_switch" />
+            
+       <SwitchPreference
+            android:layout="@layout/uwu_mid_switch"
+            android:widgetLayout="@layout/uwu_switch"
+            android:key="disable_particles_sheet"
+            android:title="@string/disable_particles_title"
+            android:summary="@string/disable_particles_sheet_summary"
+            android:defaultValue="false"
+            app:icon="@drawable/ic_toggle_switch" />
 
         <Preference
-            android:layout="@layout/uwu_top"
+            android:layout="@layout/uwu_mid"
             android:key="action_change_sheet_banner_image"
             android:title="@string/banner_custom_sheet_title"
             android:summary="@string/banner_custom_sheet_summary"
@@ -206,6 +233,16 @@
             android:title="@string/title_show_banner_preference"
             android:summary="@string/summary_show_banner_preference"
             android:defaultValue="true"
+            app:icon="@drawable/ic_toggle_switch" />
+            
+       <SwitchPreference
+            android:layout="@layout/uwu_mid_switch"
+            android:widgetLayout="@layout/uwu_switch"
+            android:key="disable_particles_pref"
+            android:title="@string/disable_particles_title"
+            android:summary="@string/disable_particles_pref_summary"
+            android:defaultValue="false"
+            app:dependency="show_banner_preference"
             app:icon="@drawable/ic_toggle_switch" />
 
         <Preference
@@ -236,7 +273,17 @@
             app:defaultValue="@string/uwu_banner_title"
             app:dialogMessage="@string/profile_name_custom_dialog"
             app:icon="@drawable/ic_image_edit" />
-
+        
+        <com.takisoft.preferencex.SimpleMenuPreference
+             android:layout="@layout/uwu_mid"
+             app:key="profile_banner_shape"
+             app:title="@string/profile_shape_title"
+             app:summary="%s"
+             app:defaultValue="uwu_shape_cookie"
+             app:entries="@array/shape_entries"
+             app:entryValues="@array/shape_values"
+             app:icon="@drawable/ic_shape_outline" />
+             
         <Preference
             android:layout="@layout/uwu_mid"
             android:key="action_change_profile_banner_image"
@@ -291,6 +338,16 @@
             app:summary="@string/cardview_arrow_summary"
             app:defaultValue="false"
             app:icon="@drawable/ic_toggle_switch" />
+            
+       <com.takisoft.preferencex.SimpleMenuPreference
+             android:layout="@layout/uwu_mid"
+             app:key="preference_icon_shape"
+             app:title="@string/preference_shape_title"
+             app:summary="%s"
+             app:defaultValue="uwu_shape_cookie"
+             app:entries="@array/shape_entries"
+             app:entryValues="@array/shape_values"
+             app:icon="@drawable/ic_shape_outline" />
             
        <com.takisoft.preferencex.SimpleMenuPreference
             android:layout="@layout/uwu_bot"

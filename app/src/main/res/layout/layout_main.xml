@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    android:id="@+id/coordinator"
+<androidx.drawerlayout.widget.DrawerLayout
+    android:id="@+id/drawer_layout"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/coordinator"
+        android:clipChildren="false"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent">
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:id="@+id/fragment_holder"
             android:layout_width="fill_parent"
@@ -15,7 +20,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:max="1"
-            app:indicatorColor="?attr/colorSecondary"
+            app:indicatorColor="?colorSecondary"
             app:layout_anchor="@+id/fab"
             app:layout_anchorGravity="center"
             app:layout_behavior="io.nekohasekai.sagernet.widget.FabProgressBehavior"
@@ -26,13 +31,13 @@
             android:nextFocusDown="@+id/stats"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:backgroundTint="?attr/colorPrimary"
+            app:backgroundTint="?colorPrimary"
             app:elevation="0.0dip"
             app:layout_anchor="@+id/stats"
             app:pressedTranslationZ="6.0dip"
             app:srcCompat="@drawable/ic_service_idle"
             app:tint="?android:textColorPrimaryInverse"
-            style="?attr/floatingActionButtonStyle" />
+            style="?floatingActionButtonStyle" />
         <io.nekohasekai.sagernet.widget.StatsBar
             android:layout_gravity="bottom"
             android:id="@+id/stats"
@@ -40,12 +45,12 @@
             android:nextFocusUp="@+id/fab"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            app:backgroundTint="?attr/colorPrimary"
+            app:backgroundTint="?colorPrimary"
             app:contentInsetStart="0.0dip"
             app:elevation="0.0dip"
             app:hideOnScroll="true"
             app:layout_scrollFlags="enterAlways|scroll"
-            style="?attr/bottomAppBarStyle">
+            style="?bottomAppBarStyle">
             <LinearLayout
                 android:orientation="vertical"
                 android:background="?android:selectableItemBackground"
@@ -110,4 +115,38 @@
             app:lottie_autoPlay="true"
             app:lottie_loop="false"
             app:lottie_rawRes="@raw/uwu_lottie_love" />
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+    <LinearLayout
+        android:layout_gravity="start"
+        android:orientation="vertical"
+        android:fitsSystemWindows="true"
+        android:layout_width="325.0dip"
+        android:layout_height="fill_parent">
+        <LinearLayout
+            android:orientation="vertical"
+            android:background="@drawable/uwu_bg_navigationview"
+            android:layout_width="wrap_content"
+            android:layout_height="fill_parent"
+            android:layout_marginLeft="16.0dip"
+            android:layout_marginTop="8.0dip"
+            android:layout_marginRight="16.0dip"
+            android:layout_marginBottom="8.0dip">
+            <include
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16.0dip"
+                android:layout_marginTop="16.0dip"
+                android:layout_marginRight="16.0dip"
+                android:layout_marginBottom="8.0dip"
+                layout="@layout/uwu_banner_nav" />
+            <com.google.android.material.navigation.NavigationView
+                android:layout_gravity="start"
+                android:id="@+id/nav_view"
+                android:background="@drawable/uwu_bg_navigationview_2"
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                app:menu="@menu/main_drawer_menu"
+                style="@style/AppTheme.Widget.Material3.NavigationView" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

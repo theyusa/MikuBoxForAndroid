@@ -23,11 +23,15 @@ import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.widget.ListListener
 import libcore.Libcore
 import moe.matsuri.nb4a.utils.SendLog
+import io.nekohasekai.sagernet.ui.bottomsheet.LogcatMenuBottomSheet
+import io.nekohasekai.sagernet.ui.toolbar.LogcatMenuController
 
 class LogcatFragment : ToolbarFragment(R.layout.layout_logcat),
     LogcatMenuBottomSheet.OnOptionClickListener {
 
     lateinit var binding: LayoutLogcatBinding
+    
+    private lateinit var menuController: LogcatMenuController
 
     @SuppressLint("RestrictedApi", "WrongConstant")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -35,17 +39,18 @@ class LogcatFragment : ToolbarFragment(R.layout.layout_logcat),
         binding = LayoutLogcatBinding.bind(view)
 
         val collapsingToolbar = binding.collapsingToolbar
-        val toolbar = binding.toolbar
+        val toolbarView = binding.toolbar
         val appBarLayout = binding.appbar
 
         collapsingToolbar.title = getString(R.string.menu_log)
         
-        toolbar.inflateMenu(R.menu.logcat_menu)
+        toolbar = toolbarView
         
-        toolbar.setOnMenuItemClickListener {
-            LogcatMenuBottomSheet().show(childFragmentManager, LogcatMenuBottomSheet.TAG)
-            true
-        }
+        menuController = LogcatMenuController(
+            toolbar = toolbar,
+            fragmentManager = childFragmentManager,
+            listener = this
+        )
 
         if (Build.VERSION.SDK_INT >= 23) {
             binding.textview.breakStrategy = 0 // simple
@@ -58,6 +63,13 @@ class LogcatFragment : ToolbarFragment(R.layout.layout_logcat),
         }
 
         reloadSession()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::menuController.isInitialized) {
+            menuController.refresh()
+        }
     }
     
     private fun getColorForLine(line: String): ForegroundColorSpan {

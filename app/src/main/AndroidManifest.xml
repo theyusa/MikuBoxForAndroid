@@ -8,31 +8,27 @@
     <permission
         android:name="${applicationId}.SERVICE"
         android:protectionLevel="signature" />
-
     <uses-permission android:name="${applicationId}.SERVICE" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission
-        android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
-        android:minSdkVersion="34" />
-    <uses-permission
-        android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED"
-        android:minSdkVersion="34" />
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
-    
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <uses-feature
         android:name="android.software.leanback"
@@ -59,6 +55,7 @@
         android:autoRevokePermissions="allowed"
         android:banner="@mipmap/ic_launcher"
         android:dataExtractionRules="@xml/backup_rules"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_descriptor"
         android:fullBackupOnly="true"
         android:hardwareAccelerated="true"
@@ -66,222 +63,268 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:largeHeap="true"
+        android:usesCleartextTraffic="true" 
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.Start">
+
+        <property
+            android:name="android.window.PROPERTY_ACTIVITY_EMBEDDING_SPLITS_ENABLED"
+            android:value="true" />
+
         <meta-data
             android:name="android.app.shortcuts"
             android:resource="@xml/shortcuts" />
 
         <activity
             android:name="io.nekohasekai.sagernet.ui.BlankActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode|orientation|screenSize"
+            android:exported="false" />
 
         <activity
-            android:screenOrientation="portrait"
             android:name="com.neko.welcome.app.WelcomeActivity"
+            android:configChanges="uiMode|orientation|screenSize"
             android:exported="true"
-            android:configChanges="uiMode">
+            android:screenOrientation="portrait">
             <intent-filter>
-                <action
-                    android:name="android.intent.action.MAIN" />
-                <category
-                    android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.MainActivity"
+            android:configChanges="uiMode|orientation|screenSize"
             android:exported="true"
             android:launchMode="singleTask"
-            android:configChanges="uiMode">
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize">
+
             <intent-filter>
-                <action
-                    android:name="android.intent.action.MAIN" />
-                <category
-                    android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+
             <intent-filter>
-                <action
-                    android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
             </intent-filter>
-            <intent-filter
-                android:label="@string/subscription_import">
-                <action
-                    android:name="android.intent.action.VIEW" />
-                <category
-                    android:name="android.intent.category.DEFAULT" />
-                <category
-                    android:name="android.intent.category.BROWSABLE" />
+
+            <intent-filter android:label="@string/subscription_import">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
-                    android:scheme="sn"
-                    android:host="subscription" />
-            </intent-filter>
-            <intent-filter
-                android:label="@string/subscription_import">
-                <action
-                    android:name="android.intent.action.VIEW" />
-                <category
-                    android:name="android.intent.category.DEFAULT" />
-                <category
-                    android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="clash"
-                    android:host="install-config" />
-            </intent-filter>
-            <intent-filter
-                android:label="@string/profile_import">
-                <action
-                    android:name="android.intent.action.VIEW" />
-                <category
-                    android:name="android.intent.category.DEFAULT" />
-                <category
-                    android:name="android.intent.category.BROWSABLE" />
-                <data
+                    android:host="subscription"
                     android:scheme="sn" />
-                <data
-                    android:scheme="ss" />
-                <data
-                    android:scheme="ssr" />
-                <data
-                    android:scheme="socks" />
-                <data
-                    android:scheme="socks4" />
-                <data
-                    android:scheme="socksa" />
-                <data
-                    android:scheme="sock5" />
-                <data
-                    android:scheme="vmess" />
-                <data
-                    android:scheme="trojan" />
-                <data
-                    android:scheme="trojan-go" />
-                <data
-                    android:scheme="naive+https" />
-                <data
-                    android:scheme="naive+quic" />
-                <data
-                    android:scheme="hysteria" />
             </intent-filter>
+
+            <intent-filter android:label="@string/subscription_import">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="install-config"
+                    android:scheme="clash" />
+            </intent-filter>
+
+            <intent-filter android:label="@string/profile_import">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="sn" />
+                <data android:scheme="ss" />
+                <data android:scheme="ssr" />
+                <data android:scheme="socks" />
+                <data android:scheme="socks4" />
+                <data android:scheme="socksa" />
+                <data android:scheme="sock5" />
+                <data android:scheme="vmess" />
+                <data android:scheme="trojan" />
+                <data android:scheme="trojan-go" />
+                <data android:scheme="naive+https" />
+                <data android:scheme="naive+quic" />
+                <data android:scheme="hysteria" />
+            </intent-filter>
+
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+
         <activity
-            android:screenOrientation="portrait"
             android:name="com.neko.splash.app.SplashActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode|orientation|screenSize"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <activity
-            android:screenOrientation="portrait"
             android:name="com.neko.hostnamefinder.HostnameFinder"
             android:configChanges="uiMode"
+            android:exported="false"
             android:launchMode="singleTask"
-            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity" />
+            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity"
+            android:screenOrientation="portrait" />
+
         <activity
-            android:screenOrientation="portrait"
             android:name="com.neko.hosttoip.HostToIP"
             android:configChanges="uiMode"
+            android:exported="false"
             android:launchMode="singleTask"
-            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity" />
+            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity"
+            android:screenOrientation="portrait" />
+
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
-            android:screenOrientation="portrait"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode|orientation|screenSize"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.VpnRequestActivity"
             android:excludeFromRecents="true"
+            android:exported="false"
+            android:screenOrientation="portrait"
             android:taskAffinity="" />
+
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.ConfigEditActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.SocksSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.HttpSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.ShadowsocksSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.VMessSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.JuicitySettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.TrojanSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.TrojanGoSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.MieruSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.NaiveSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.HysteriaSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.SSHSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.WireGuardSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.TuicSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.profile.ChainSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="moe.matsuri.nb4a.proxy.shadowtls.ShadowTLSSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="moe.matsuri.nb4a.proxy.anytls.AnyTLSSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="moe.matsuri.nb4a.proxy.config.ConfigSettingActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.GroupSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.RouteSettingsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.AssetsActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+            
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.AppListActivity"
-            android:configChanges="uiMode" />
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <activity
             android:name=".QuickToggleShortcut"
             android:excludeFromRecents="true"
@@ -295,59 +338,67 @@
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
             </intent-filter>
         </activity>
+
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.AppManagerActivity"
             android:configChanges="uiMode"
             android:excludeFromRecents="true"
+            android:exported="false"
             android:label="@string/proxied_apps"
             android:launchMode="singleTask"
-            android:parentActivityName=".ui.MainActivity" />
+            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity"
+            android:screenOrientation="portrait" />
+
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.ScannerActivity"
             android:configChanges="uiMode"
             android:excludeFromRecents="true"
+            android:exported="false"
             android:label="@string/add_profile_methods_scan_qr_code"
             android:launchMode="singleTask"
-            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity" />
+            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity"
+            android:screenOrientation="portrait" />
+
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.ProfileSelectActivity"
             android:configChanges="uiMode"
+            android:exported="false"
             android:label="@string/select_profile"
             android:launchMode="singleTask"
-            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity" />
+            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity"
+            android:screenOrientation="portrait" />
+
         <activity
-            android:screenOrientation="portrait"
             android:name="io.nekohasekai.sagernet.ui.StunActivity"
             android:configChanges="uiMode"
+            android:exported="false"
             android:launchMode="singleTask"
-            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity" />
+            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity"
+            android:screenOrientation="portrait" />
 
         <activity
             android:name="io.nekohasekai.sagernet.ui.SwitchActivity"
             android:configChanges="uiMode"
             android:excludeFromRecents="true"
+            android:exported="false"
             android:launchMode="singleInstance"
             android:theme="@style/Theme.SagerNet.Dialog" />
 
         <service
             android:name="io.nekohasekai.sagernet.bg.ProxyService"
             android:exported="false"
-            android:foregroundServiceType="systemExempted"
+            android:foregroundServiceType="systemExempted|specialUse"
             android:process=":bg"
             tools:ignore="ForegroundServicePermission" />
 
         <service
             android:name="io.nekohasekai.sagernet.bg.VpnService"
             android:exported="false"
-            android:foregroundServiceType="systemExempted"
+            android:foregroundServiceType="systemExempted|specialUse"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:process=":bg"
             tools:ignore="ForegroundServicePermission">
-
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
@@ -380,6 +431,11 @@
                 android:value="true" />
         </service>
 
+        <service
+            android:name="androidx.room.MultiInstanceInvalidationService"
+            android:exported="false"
+            android:process=":bg" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.cache"
@@ -406,10 +462,6 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-
-        <service
-            android:name="androidx.room.MultiInstanceInvalidationService"
-            android:process=":bg" />
 
     </application>
 

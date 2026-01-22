@@ -18,7 +18,7 @@ abstract class ShaderImageView @JvmOverloads constructor(
         private const val DEBUG = false
     }
 
-    private var _pathHelper: ShaderHelper? = null
+    protected var _pathHelper: ShaderHelper? = null
 
     protected val pathHelper: ShaderHelper
         get() {
@@ -30,11 +30,33 @@ abstract class ShaderImageView @JvmOverloads constructor(
 
     init {
         pathHelper.init(context, attrs, defStyle)
-        
         pathHelper.onImageDrawableReset(drawable)
     }
 
     protected abstract fun createImageViewHelper(): ShaderHelper
+
+    fun reloadShape() {
+        val oldHelper = _pathHelper
+        
+        val newHelper = createImageViewHelper()
+        newHelper.init(context, null, 0)
+        
+        if (oldHelper != null) {
+            newHelper.borderColor = oldHelper.borderColor
+            newHelper.borderWidth = oldHelper.borderWidth
+            newHelper.borderAlpha = oldHelper.borderAlpha
+            newHelper.isSquare = oldHelper.isSquare
+        }
+
+        _pathHelper = newHelper
+        
+        _pathHelper?.onImageDrawableReset(drawable)
+        if (width > 0 && height > 0) {
+            _pathHelper?.onSizeChanged(width, height)
+        }
+        
+        invalidate()
+    }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         if (pathHelper.isSquare) {
@@ -51,7 +73,7 @@ abstract class ShaderImageView @JvmOverloads constructor(
 
     override fun setImageDrawable(drawable: Drawable?) {
         super.setImageDrawable(drawable)
-        _pathHelper?.onImageDrawableReset(getDrawable())
+        _pathHelper?.onImageDrawableReset(drawable)
     }
 
     override fun setImageResource(resId: Int) {
@@ -61,7 +83,7 @@ abstract class ShaderImageView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        pathHelper.onSizeChanged(w, h)
+        _pathHelper?.onSizeChanged(w, h)
     }
 
     override fun onDraw(canvas: Canvas) {

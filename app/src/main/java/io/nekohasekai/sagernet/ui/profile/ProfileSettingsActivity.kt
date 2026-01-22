@@ -1,16 +1,11 @@
 package io.nekohasekai.sagernet.ui.profile
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import android.view.LayoutInflater
-import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
@@ -32,9 +27,6 @@ import androidx.preference.PreferenceFragmentCompat
 import com.github.shadowsocks.plugin.Empty
 import com.github.shadowsocks.plugin.fragment.AlertDialogFragment
 import com.google.android.material.appbar.CollapsingToolbarLayout
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.*
 import io.nekohasekai.sagernet.database.DataStore
@@ -49,15 +41,16 @@ import io.nekohasekai.sagernet.ui.ThemedActivity
 import io.nekohasekai.sagernet.widget.ListListener
 import kotlinx.parcelize.Parcelize
 import kotlin.properties.Delegates
-import android.widget.ImageView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
+import io.nekohasekai.sagernet.ui.bottomsheet.ProfileSettingsMenuBottomSheet
+import io.nekohasekai.sagernet.ui.toolbar.ProfileSettingsMenuController
 
 @Suppress("UNCHECKED_CAST")
 abstract class ProfileSettingsActivity<T : AbstractBean>(
     @LayoutRes resId: Int = R.layout.uwu_collapse_layout,
 ) : ThemedActivity(resId), OnPreferenceDataStoreChangeListener,
-    ProfileMenuBottomSheet.OnOptionClickListener {
+    ProfileSettingsMenuBottomSheet.OnOptionClickListener {
+    
+    private lateinit var menuController: ProfileSettingsMenuController
 
     class UnsavedChangesDialogFragment : AlertDialogFragment<Empty, Empty>() {
         override fun AlertDialog.Builder.prepare(listener: DialogInterface.OnClickListener) {
@@ -113,12 +106,11 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
             finish()
         }
 
-        toolbar.inflateMenu(R.menu.profile_config_menu)
-
-        toolbar.setOnMenuItemClickListener {
-            ProfileMenuBottomSheet().show(supportFragmentManager, ProfileMenuBottomSheet.TAG)
-            true
-        }
+        menuController = ProfileSettingsMenuController(
+            toolbar = toolbar,
+            fragmentManager = supportFragmentManager,
+            listener = this
+        )
 
         if (savedInstanceState == null) {
             val editingId = intent.getLongExtra(EXTRA_PROFILE_ID, 0L)
@@ -145,6 +137,13 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
                         .commit()
                 }
             }
+        }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        if (::menuController.isInitialized) {
+            menuController.refresh()
         }
     }
 
@@ -376,107 +375,5 @@ abstract class ProfileSettingsActivity<T : AbstractBean>(
                 "\u2022".repeat(text.length)
             }
         }
-    }
-}
-
-class ProfileMenuBottomSheet : BottomSheetDialogFragment() {
-
-    interface OnOptionClickListener {
-        fun onOptionClicked(viewId: Int)
-    }
-
-    private var mListener: OnOptionClickListener? = null
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        if (context is OnOptionClickListener) {
-            mListener = context
-        } else {
-            throw RuntimeException("$context must implement OnOptionClickListener")
-        }
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.uwu_bottom_sheet_profile_config_menu, container, false)
-    }
-
-    override fun onStart() {
-        super.onStart()
-        val sheetDialog = dialog as? BottomSheetDialog
-        sheetDialog?.behavior?.apply {
-            state = BottomSheetBehavior.STATE_EXPANDED
-            skipCollapsed = true
-        }
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        
-        val bannerImageView = view.findViewById<ImageView>(R.id.img_banner_sheet)
-
-        if (bannerImageView != null) {
-            bannerImageView.setImageResource(R.drawable.uwu_banner_image_about)
-
-            val savedUriString = DataStore.configurationStore.getString("custom_sheet_banner_uri", null)
-
-            if (!savedUriString.isNullOrBlank()) {
-                Glide.with(this)
-                    .load(savedUriString)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .dontAnimate()
-                    .into(bannerImageView)
-            }
-        }
-
-        val clickListener = View.OnClickListener {
-            mListener?.onOptionClicked(it.id)
-            dismiss()
-        }
-
-        val btnMove = view.findViewById<View>(R.id.action_move)
-        val btnShortcut = view.findViewById<View>(R.id.action_create_shortcut)
-        val btnCustomOutbound = view.findViewById<View>(R.id.action_custom_outbound_json)
-        val btnCustomConfig = view.findViewById<View>(R.id.action_custom_config_json)
-        val btnApply = view.findViewById<View>(R.id.action_apply)
-        val btnDelete = view.findViewById<View>(R.id.action_delete)
-
-        btnMove?.isVisible = false
-        if (DataStore.editingId != 0L
-            && SagerDatabase.groupDao.getById(DataStore.editingGroup)?.type == GroupType.BASIC // not in subscription group
-            && SagerDatabase.groupDao.allGroups().filter { it.type == GroupType.BASIC }.size > 1 // have other basic group
-        ) {
-            btnMove?.isVisible = true
-        }
-
-        btnShortcut?.isVisible = false
-        if (Build.VERSION.SDK_INT >= 26 && DataStore.editingId != 0L) {
-            btnShortcut?.isVisible = true
-        }
-
-        val actionIds = listOf(
-            R.id.action_apply,
-            R.id.action_delete,
-            R.id.action_move,
-            R.id.action_create_shortcut,
-            R.id.action_custom_outbound_json,
-            R.id.action_custom_config_json
-        )
-
-        actionIds.forEach { id ->
-            view.findViewById<View>(id)?.setOnClickListener(clickListener)
-        }
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        mListener = null
-    }
-
-    companion object {
-        const val TAG = "ProfileMenuBottomSheet"
     }
 }

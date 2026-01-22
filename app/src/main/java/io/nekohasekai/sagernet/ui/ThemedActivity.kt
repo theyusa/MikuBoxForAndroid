@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.util.DisplayMetrics
+import android.view.MenuItem
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
@@ -142,20 +143,34 @@ abstract class ThemedActivity : AppCompatActivity {
             ActivityCompat.recreate(this)
         }
     }
-
+    
     override fun startActivity(intent: Intent?) {
         super.startActivity(intent)
-        overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
     }
 
     override fun startActivity(intent: Intent?, options: Bundle?) {
         super.startActivity(intent, options)
-        overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        super.onBackPressed()
+        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            finish()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     override fun finish() {
         super.finish()
-        overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
     }
 
     fun snackbar(@StringRes resId: Int): Snackbar = snackbar("").setText(resId)
@@ -187,7 +202,7 @@ abstract class ThemedActivity : AppCompatActivity {
         }
     }
 
-    private fun getCustomTypeface(context: Context, fontName: String?): Typeface {
+    fun getCustomTypeface(context: Context, fontName: String?): Typeface {
         val fontId = when (fontName) {
             "google" -> R.font.googlesansregular 
             "chococooky" -> R.font.chococookyregular

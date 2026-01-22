@@ -2,20 +2,46 @@ package io.nekohasekai.sagernet.ui
 
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.annotation.SuppressLint
+import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.text.TextPaint
+import android.text.style.TypefaceSpan
+import android.view.MenuItem
 import android.os.RemoteException
 import android.view.KeyEvent
 import android.view.View
+import android.widget.ImageView
 import androidx.activity.addCallback
 import androidx.annotation.IdRes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.preference.PreferenceDataStore
+import com.airbnb.lottie.LottieAnimationView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.gif.GifOptions
+import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
+import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.target.Target
+import com.google.android.material.bottomappbar.BottomAppBar.FAB_ALIGNMENT_MODE_CENTER
+import com.google.android.material.bottomappbar.BottomAppBar.FAB_ALIGNMENT_MODE_END
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.navigation.NavigationView
+import com.google.android.material.shape.CornerFamily
+import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.snackbar.Snackbar
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.GroupType
@@ -39,35 +65,28 @@ import io.nekohasekai.sagernet.fmt.KryoConverters
 import io.nekohasekai.sagernet.fmt.PluginEntry
 import io.nekohasekai.sagernet.group.GroupInterfaceAdapter
 import io.nekohasekai.sagernet.group.GroupUpdater
-import moe.matsuri.nb4a.utils.Util
-import io.nekohasekai.sagernet.ui.MessageStore
-import android.app.ActivityManager
-import android.content.Context
-import com.google.android.material.bottomappbar.BottomAppBar.FAB_ALIGNMENT_MODE_CENTER
-import com.google.android.material.bottomappbar.BottomAppBar.FAB_ALIGNMENT_MODE_END
-import com.google.android.material.shape.CornerFamily
-import com.google.android.material.shape.MaterialShapeDrawable
 import io.nekohasekai.sagernet.ktx.*
-import io.nekohasekai.sagernet.*
-import io.nekohasekai.sagernet.widget.FabStyle
-import com.airbnb.lottie.LottieAnimationView
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.bottomsheet.BottomSheetBehavior
 import io.nekohasekai.sagernet.utils.Theme
 import io.nekohasekai.sagernet.utils.showBlur
-import android.widget.ImageView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
+import io.nekohasekai.sagernet.widget.FabStyle
+import moe.matsuri.nb4a.utils.Util
+import io.nekohasekai.sagernet.ui.toolbar.NavMenuController
 
 class MainActivity : ThemedActivity(),
     SagerConnection.Callback,
-    OnPreferenceDataStoreChangeListener {
+    OnPreferenceDataStoreChangeListener,
+    NavigationHost { 
 
     lateinit var binding: LayoutMainBinding
+    private lateinit var navMenuController: NavMenuController
+
+    private val TAG_SHEET_DEFAULT = "DEFAULT_BANNER_SHEET"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = LayoutMainBinding.inflate(layoutInflater)
+        
+        navMenuController = NavMenuController(this)
 
         when (DataStore.fabStyle) {
             FabStyle.End -> {
@@ -98,25 +117,33 @@ class MainActivity : ThemedActivity(),
         binding.fab.initProgress(binding.fabProgress)
 
         if (savedInstanceState == null) {
-            displayFragmentWithId(R.id.nav_configuration);
+            displayFragmentWithId(R.id.nav_configuration)
         }
         
         onBackPressedDispatcher.addCallback {
-            if (supportFragmentManager.findFragmentById(R.id.fragment_holder) is ConfigurationFragment) {
+            if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                binding.drawerLayout.closeDrawer(GravityCompat.START)
+            } else if (supportFragmentManager.findFragmentById(R.id.fragment_holder) is ConfigurationFragment) {
                 moveTaskToBack(true)
             } else {
-                displayFragmentWithId(R.id.nav_configuration)
+                displayFragmentWithId(R.id.nav_configuration, reverseAnim = true)
             }
         }
 
         binding.fab.setOnClickListener {
-            if (DataStore.serviceState.canStop) SagerNet.stopService() else connect.launch(
-                null
-            )
+            if (DataStore.serviceState.canStop) SagerNet.stopService() else connect.launch(null)
         }
         binding.stats.setOnClickListener { if (DataStore.serviceState.connected) binding.stats.testConnection() }
+        
+        binding.stats.setNavigationOnClickListener {
+            navMenuController.showMenu()
+        }
 
         setContentView(binding.root)
+        
+        setupNavigationView()
+        
+        updateDrawerLockMode()
 
         val lottieView: LottieAnimationView = binding.lottieWelcome
 
@@ -131,7 +158,10 @@ class MainActivity : ThemedActivity(),
                     lottieView.animate()
                         .alpha(0f)
                         .setDuration(900)
-                        .withEndAction { lottieView.visibility = View.GONE }
+                        .withEndAction { 
+                            lottieView.visibility = View.GONE
+                            lottieView.alpha = 1f 
+                        }
                         .start()
                 }
 
@@ -151,10 +181,8 @@ class MainActivity : ThemedActivity(),
             onNewIntent(intent)
         }
 
-        // sdk 33 notification
         if (Build.VERSION.SDK_INT >= 33) {
-            val checkPermission =
-                ContextCompat.checkSelfPermission(this@MainActivity, POST_NOTIFICATIONS)
+            val checkPermission = ContextCompat.checkSelfPermission(this@MainActivity, POST_NOTIFICATIONS)
             if (checkPermission != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(
                     this@MainActivity, arrayOf(POST_NOTIFICATIONS), 0
@@ -173,8 +201,117 @@ class MainActivity : ThemedActivity(),
                 .showBlur()
         }
     }
+    
+    private fun updateDrawerLockMode() {
+        if (::binding.isInitialized) {
+            val lockMode = if (DataStore.disableBottomSheetHome) {
+                DrawerLayout.LOCK_MODE_UNLOCKED
+            } else {
+                DrawerLayout.LOCK_MODE_LOCKED_CLOSED
+            }
+            binding.drawerLayout.setDrawerLockMode(lockMode)
+        }
+    }
+    
+    fun refreshNavMenu(clashApi: Boolean) {
+        if (::binding.isInitialized) {
+            binding.navView.menu.findItem(R.id.nav_traffic)?.isVisible = clashApi
+        }
+    }
 
-    fun showNavigationSheet() {
+    override fun showNavigationSheet() {
+        if (::navMenuController.isInitialized) {
+            navMenuController.showMenu()
+        }
+    }
+
+    private fun setupNavigationView() {
+        val navView = binding.navView
+        
+        refreshNavMenu(DataStore.enableClashAPI)
+        
+        applyFontToNavigation()
+
+        val dimAlpha = if (Build.VERSION.SDK_INT >= 31) {
+            77
+        } else {
+            153
+        }
+        val dimColor = android.graphics.Color.argb(dimAlpha, 0, 0, 0)
+        binding.drawerLayout.setScrimColor(dimColor)
+
+        if (Build.VERSION.SDK_INT >= 31) {
+            binding.drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+                override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                    super.onDrawerSlide(drawerView, slideOffset)
+                    
+                    val radius = slideOffset * 30f 
+                    
+                    if (radius > 1f) {
+                        binding.coordinator.setRenderEffect(
+                            android.graphics.RenderEffect.createBlurEffect(
+                                radius,
+                                radius,
+                                android.graphics.Shader.TileMode.CLAMP
+                            )
+                        )
+                    } else {
+                        binding.coordinator.setRenderEffect(null)
+                    }
+                }
+
+                override fun onDrawerClosed(drawerView: View) {
+                    super.onDrawerClosed(drawerView)
+                    binding.coordinator.setRenderEffect(null)
+                }
+            })
+        }
+
+        navView.setNavigationItemSelectedListener { item ->
+            displayFragmentWithId(item.itemId)
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+            true
+        }
+    }
+    
+    private fun applyFontToNavigation() {
+        val navView = binding.navView
+        val menu = navView.menu
+        val appFont = DataStore.appFont
+
+        val typeface = getCustomTypeface(this, appFont)
+
+        if (typeface != null) {
+            for (i in 0 until menu.size()) {
+                val menuItem = menu.getItem(i)
+                val subMenu = menuItem.subMenu
+                
+                applyFontToMenuItem(menuItem, typeface)
+
+                if (subMenu != null && subMenu.size() > 0) {
+                    for (j in 0 until subMenu.size()) {
+                        val subMenuItem = subMenu.getItem(j)
+                        applyFontToMenuItem(subMenuItem, typeface)
+                    }
+                }
+            }
+        }
+    }
+    
+    private fun applyFontToMenuItem(menuItem: MenuItem, typeface: Typeface) {
+        val title = menuItem.title.toString()
+        val spannableString = SpannableString(title)
+        
+        spannableString.setSpan(
+            CustomTypefaceSpan(typeface),
+            0,
+            spannableString.length,
+            Spanned.SPAN_INCLUSIVE_INCLUSIVE
+        )
+        menuItem.title = spannableString
+    }
+    
+    fun showOriginalNavigationSheet() {
         val dialog = BottomSheetDialog(this)
         
         Theme.applyWindowBlur(dialog.window)
@@ -188,16 +325,37 @@ class MainActivity : ThemedActivity(),
         val bannerImageView = view.findViewById<ImageView>(R.id.img_banner_sheet)
 
         if (bannerImageView != null) {
-            bannerImageView.setImageResource(R.drawable.uwu_banner_image_about)
-
-            val savedUriString = DataStore.configurationStore.getString("custom_sheet_banner_uri", null)
-
-            if (!savedUriString.isNullOrBlank()) {
-                Glide.with(this)
-                    .load(savedUriString)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .dontAnimate()
-                    .into(bannerImageView)
+        	bannerImageView.setLayerType(View.LAYER_TYPE_HARDWARE, null) 
+            val bannerUriString = DataStore.configurationStore.getString("custom_sheet_banner_uri", null) 
+            val targetTag = if (bannerUriString.isNullOrBlank()) TAG_SHEET_DEFAULT else bannerUriString
+            val currentTag = bannerImageView.tag            
+            if (currentTag != targetTag) {
+                if (!bannerUriString.isNullOrBlank()) {
+                	val bannerSavedUriString = Uri.parse(bannerUriString)
+                    Glide.with(this)
+                        .load(bannerSavedUriString)
+                        .downsample(DownsampleStrategy.NONE)
+                        .set(GifOptions.DECODE_FORMAT, DecodeFormat.PREFER_ARGB_8888)
+                        .format(DecodeFormat.PREFER_ARGB_8888)
+                        .override(Target.SIZE_ORIGINAL)
+                        .diskCacheStrategy(DiskCacheStrategy.DATA)
+                        .skipMemoryCache(false)
+                        .error(R.drawable.uwu_banner_image_about)
+                        .into(bannerImageView)
+                } else {
+                    Glide.with(this).clear(bannerImageView)
+                    bannerImageView.setImageResource(R.drawable.uwu_banner_image_about)
+                }              
+                bannerImageView.tag = targetTag
+            }
+        }
+        
+        val particlesView = view.findViewById<View>(R.id.ParticlesView)
+        if (particlesView != null) {
+            if (DataStore.disableParticlesSheet) {
+                particlesView.visibility = View.GONE
+            } else {
+                particlesView.visibility = View.VISIBLE
             }
         }
 
@@ -229,7 +387,7 @@ class MainActivity : ThemedActivity(),
     }
 
     @SuppressLint("CommitTransaction")
-    fun displayFragment(fragment: ToolbarFragment) {
+    fun displayFragment(fragment: ToolbarFragment, reverseAnim: Boolean = false) {
         if (fragment is ConfigurationFragment) {
             binding.stats.allowShow = true
             binding.fab.show()
@@ -239,16 +397,38 @@ class MainActivity : ThemedActivity(),
             binding.fab.hide()
         }
 
-        supportFragmentManager.beginTransaction()
-            .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
-            .replace(R.id.fragment_holder, fragment)
+        val transaction = supportFragmentManager.beginTransaction()
+
+        if (reverseAnim) {
+            transaction.setCustomAnimations(R.anim.slide_in_left, R.anim.slide_out_right)
+        } else {
+            transaction.setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
+        }
+
+        transaction.replace(R.id.fragment_holder, fragment)
             .commitAllowingStateLoss()
+            
+        val id = when(fragment) {
+            is ConfigurationFragment -> R.id.nav_configuration
+            is GroupFragment -> R.id.nav_group
+            is RouteFragment -> R.id.nav_route
+            is SettingsFragment -> R.id.nav_settings
+            is WebviewFragment -> R.id.nav_traffic
+            is ToolsFragment -> R.id.nav_tools
+            is ThemeSettingsFragment -> R.id.nav_theme
+            is LogcatFragment -> R.id.nav_logcat
+            is AboutFragment -> R.id.nav_about
+            else -> null
+        }
+        if (id != null) {
+            binding.navView.setCheckedItem(id)
+        }
     }
 
-    fun displayFragmentWithId(@IdRes id: Int): Boolean {
+    fun displayFragmentWithId(@IdRes id: Int, reverseAnim: Boolean = false): Boolean {
         when (id) {
-            R.id.nav_configuration -> displayFragment(ConfigurationFragment())
-            R.id.nav_group -> displayFragment(GroupFragment())
+            R.id.nav_configuration -> displayFragment(ConfigurationFragment(), reverseAnim)
+            R.id.nav_group -> displayFragment(GroupFragment()) 
             R.id.nav_route -> displayFragment(RouteFragment())
             R.id.nav_settings -> displayFragment(SettingsFragment())
             R.id.nav_traffic -> displayFragment(WebviewFragment())
@@ -498,13 +678,17 @@ class MainActivity : ThemedActivity(),
     }
 
     override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
-        when (key) {
-            Key.SERVICE_MODE -> onBinderDied()
-            Key.PROXY_APPS, Key.BYPASS_MODE, Key.INDIVIDUAL -> {
-                if (DataStore.serviceState.canStop) {
-                    snackbar(getString(R.string.need_reload)).setAction(R.string.apply) {
-                        SagerNet.reloadService()
-                    }.show()
+        runOnUiThread {
+            when (key) {
+            	"disable_bottom_sheet_home" -> updateDrawerLockMode()
+            	Key.ENABLE_CLASH_API -> refreshNavMenu(DataStore.enableClashAPI)
+                Key.SERVICE_MODE -> onBinderDied()
+                Key.PROXY_APPS, Key.BYPASS_MODE, Key.INDIVIDUAL -> {
+                    if (DataStore.serviceState.canStop) {
+                        snackbar(getString(R.string.need_reload)).setAction(R.string.apply) {
+                            SagerNet.reloadService()
+                        }.show()
+                    }
                 }
             }
         }

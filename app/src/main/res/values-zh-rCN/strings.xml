@@ -700,6 +700,14 @@
     <string name="display_category">显示</string>
     <string name="summary_speed_test">测测现在的网速有多快！</string>
     <string name="summary_free_config">随心配置，完全免费！</string>
+    <string name="profile_shape_title">个人资料横幅形状</string>
+    <string name="preference_shape_title">图标形状</string>
+    <string name="pref_disable_bottom_sheet_fragment_title">在 fragment 中禁用 bottomsheet</string>
+    <string name="pref_disable_bottom_sheet_home_title">在主页禁用 bottomsheet</string>
+    <string name="pref_disable_bottom_sheet_summary">使用标准工具栏菜单代替 bottomsheet</string>
+    <string name="disable_particles_title">禁用粒子动画</string>
+    <string name="disable_particles_sheet_summary">隐藏 bottomsheet 中的粒子特效</string>
+    <string name="disable_particles_pref_summary">隐藏偏好设置中的粒子特效</string>
     
     <!-- uwu -->
     <string name="uwu_miku_ui">Miku 的衣橱</string>

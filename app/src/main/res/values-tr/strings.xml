@@ -737,6 +737,14 @@ Lütfen Sistem Ayarlarından bu izni verin."</string>
     <string name="display_category">Ekran</string>
     <string name="summary_speed_test">İnternetinin ne kadar hızlı olduğunu hemen gör!</string>
     <string name="summary_free_config">Ayarları kafana göre yap, tamamen ücretsiz!</string>
+    <string name="profile_shape_title">Profil banner şekli</string>
+    <string name="preference_shape_title">Simge şekli</string>
+    <string name="pref_disable_bottom_sheet_fragment_title">Fragment içinde Alt Menüyü Devre Dışı Bırak</string>
+    <string name="pref_disable_bottom_sheet_home_title">Ana Sayfada Alt Menüyü Devre Dışı Bırak</string>
+    <string name="pref_disable_bottom_sheet_summary">Alt menü yerine standart araç çubuğu menüsünü kullan</string>
+    <string name="disable_particles_title">Parçacık animasyonunu kapat</string>
+    <string name="disable_particles_sheet_summary">Alt paneldeki parçacık efektlerini gizle</string>
+    <string name="disable_particles_pref_summary">Tercihlerdeki parçacık efektlerini gizle</string>
     
     <string name="uwu_miku_ui">"Miku\'nun Gardırobu"</string>
     <string name="uwu_miku_ui_summary">"Haydi Miku'yu giydirip daha da güzelleştirelim!"</string>

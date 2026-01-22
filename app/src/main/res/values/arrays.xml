@@ -1,6 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	
+    <string-array name="shape_entries">
+        <item>Cookie</item>
+        <item>Clover</item>
+        <item>Circle</item>
+        <item>Diamond</item>
+        <item>Pentagon</item>
+        <item>Hexagon</item>
+        <item>Octagon</item>
+        <item>Rounded Square</item>
+        <item>Squircle</item>
+        <item>Heart</item>
+    </string-array>
+
+    <string-array name="shape_values">
+        <item>uwu_shape_cookie</item>
+        <item>uwu_shape_clover</item>
+        <item>uwu_shape_circle</item>
+        <item>uwu_shape_diamond</item>
+        <item>uwu_shape_pentagon</item>
+        <item>uwu_shape_hexagon</item>
+        <item>uwu_shape_octagon</item>
+        <item>uwu_shape_rounded_square</item>
+        <item>uwu_shape_squircle</item>
+        <item>uwu_shape_heart</item>
+    </string-array>
+	
     <string-array name="app_font_entries">
         <item>@string/language_system_default</item>
         <item>Google Sans</item>

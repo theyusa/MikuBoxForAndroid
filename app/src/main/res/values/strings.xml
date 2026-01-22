@@ -801,6 +801,19 @@ Please grant this permission in System Settings."</string>
     <string name="display_category">Display</string>
     <string name="summary_speed_test">Check how fast your internet is right now!</string>
     <string name="summary_free_config">Customize your config freely, for free!</string>
+    <string name="profile_shape_title"> Banner profile shape</string> 
+    <string name="preference_shape_title">Icon shape</string>
+    <string name="mal_title_about">About</string>
+    <string name="mal_title_licenses">Licenses</string>
+    <string name="mal_close">Close</string>
+    <string name="mal_send_email">Send email</string>
+    <string name="mal_activity_exception">No apps to handle action</string>
+    <string name="pref_disable_bottom_sheet_fragment_title">Disable bottomsheet in fragment</string>
+    <string name="pref_disable_bottom_sheet_home_title">Disable bottomsheet in homepage</string>
+    <string name="pref_disable_bottom_sheet_summary">Use standard toolbar menu instead of bottomsheet</string>
+    <string name="disable_particles_title">Disable particles animation</string>
+    <string name="disable_particles_sheet_summary">Hide particle effects in the bottomsheet</string>
+    <string name="disable_particles_pref_summary">Hide particle effects in the preference</string>
 
     <!-- uwu -->
     <string name="uwu_miku_ui">"Miku's Wardrobe"</string>

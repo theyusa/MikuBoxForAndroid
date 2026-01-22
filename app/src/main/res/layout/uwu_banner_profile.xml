@@ -18,7 +18,8 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content">
         <com.google.android.material.card.MaterialCardView
-           android:id="@+id/img_banner_layout_preference"
+            android:id="@+id/img_banner_layout_preference"
+            android:clickable="false"
             android:clipToPadding="false"
             android:layout_width="fill_parent"
             android:layout_height="300.0dip"
@@ -29,12 +30,11 @@
             app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="5.0dip"
             app:cardElevation="0.0dip"
-            android:clickable="false" 
             app:rippleColor="@android:color/transparent">
             <androidx.appcompat.widget.AppCompatImageView
-                android:id="@+id/img_banner_preference"
                 android:gravity="center"
                 android:orientation="vertical"
+                android:id="@+id/img_banner_preference"
                 android:layout_width="fill_parent"
                 android:layout_height="300.0dip"
                 android:src="@drawable/uwu_banner_image"
@@ -46,12 +46,13 @@
                 android:layout_height="fill_parent"
                 android:alpha="0.2" />
             <com.neko.particlesdrawable.ParticlesView
+                android:id="@+id/ParticlesView"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
-                app:dotColor="?attr/colorPrimary"
+                app:dotColor="?colorPrimary"
                 app:frameDelayMillis="10"
-                app:lineColor="?attr/colorPrimary"
+                app:lineColor="?colorPrimary"
                 app:lineDistance="86.0dip"
                 app:lineThickness="1.0dip"
                 app:maxDotRadius="4.0dip"
@@ -68,7 +69,7 @@
                 android:layout_marginLeft="75.0dip"
                 android:layout_marginTop="-30.0dip"
                 android:layout_marginRight="75.0dip"
-                android:backgroundTint="?attr/colorBg" />
+                android:backgroundTint="?colorBg" />
             <LinearLayout
                 android:gravity="bottom"
                 android:layout_gravity="bottom"
@@ -140,22 +141,22 @@
                 android:layout_marginLeft="75.0dip"
                 android:layout_marginRight="75.0dip"
                 android:layout_marginBottom="-30.0dip"
-                android:backgroundTint="?attr/colorBg" />
+                android:backgroundTint="?colorBg" />
         </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/editTextCustom"
             android:focusable="true"
-            android:clickable="true" 
-            app:rippleColor="?android:colorControlHighlight"
+            android:clickable="true"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="0.0dip"
             android:layout_marginTop="0.0dip"
             android:layout_marginRight="0.0dip"
             android:layout_marginBottom="0.0dip"
-            app:cardBackgroundColor="?attr/colorCard"
+            app:cardBackgroundColor="?colorCard"
             app:cardCornerRadius="5.0dip"
-            app:cardElevation="0.0dip">
+            app:cardElevation="0.0dip"
+            app:rippleColor="?android:colorControlHighlight">
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
@@ -173,24 +174,21 @@
                         android:layout_marginStart="8.0dip"
                         android:layout_marginEnd="0.0dip"
                         key="uwu_icon">
-                        <LinearLayout
-                            android:background="@drawable/uwu_bg_icon"
-                            android:layout_width="45.0dip"
-                            android:layout_height="45.0dip"
-                            android:layout_marginStart="8.0dip"
-                            android:backgroundTint="?attr/colorPrimary">
+                        <FrameLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8.0dip">
+                            <com.neko.widget.DynamicShapeImageView
+                                android:layout_width="45.0dip"
+                                android:layout_height="45.0dip"
+                                android:scaleType="centerCrop" />
                             <androidx.preference.internal.PreferenceImageView
-                                android:gravity="center"
+                                android:layout_gravity="center"
                                 android:id="@android:id/icon"
                                 android:layout_width="25.0dip"
                                 android:layout_height="25.0dip"
-                                android:layout_marginTop="10.0dip"
-                                android:tint="?android:textColorPrimaryInverse"
-                                android:layout_marginStart="10.0dip"
-                                app:layout_constraintBottom_toBottomOf="parent"
-                                app:layout_constraintEnd_toEndOf="parent"
-                                app:layout_constraintTop_toTopOf="parent" />
-                        </LinearLayout>
+                                android:tint="?colorIcon" />
+                        </FrameLayout>
                     </com.neko.widget.LayoutOff>
                     <RelativeLayout
                         android:paddingTop="16.0dip"
@@ -245,7 +243,7 @@
                         <com.google.android.material.card.MaterialCardView
                             android:layout_width="28.0dip"
                             android:layout_height="28.0dip"
-                            app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
+                            app:cardBackgroundColor="?colorSurfaceContainerHighest"
                             app:cardCornerRadius="99.0dip"
                             app:cardElevation="0.0dip"
                             app:strokeWidth="0.0dip">
@@ -254,7 +252,7 @@
                                 android:layout_height="25.0dip"
                                 android:layout_marginTop="1.0dip"
                                 android:src="@drawable/uwu_arrow"
-                                android:tint="?attr/colorOnSurfaceVariant"
+                                android:tint="?colorOnSurfaceVariant"
                                 android:layout_marginStart="2.0dip" />
                         </com.google.android.material.card.MaterialCardView>
                     </com.neko.widget.LayoutOff>

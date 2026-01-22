@@ -1,4 +1,44 @@
 <resources>
+	
+	<style name="AppTheme.Widget.Material3.NavigationView" parent="@style/Widget.Design.ScrimInsetsFrameLayout">
+        <item name="android:background">?colorSurfaceContainerLow</item>
+        <item name="android:maxWidth">325.0dip</item>
+        <item name="bottomInsetScrimEnabled">false</item>
+        <item name="dividerInsetEnd">28.0dip</item>
+        <item name="dividerInsetStart">28.0dip</item>
+        <item name="drawerLayoutCornerSize">30.0dip</item>
+        <item name="elevation">0.0dip</item>
+        <item name="itemHorizontalPadding">28.0dip</item>
+        <item name="itemIconPadding">12.0dip</item>
+        <item name="itemIconSize">24.0dip</item>
+        <item name="itemIconTint">@color/m3_navigation_item_icon_tint</item>
+        <item name="itemRippleColor">@color/m3_navigation_item_ripple_color</item>
+        <item name="itemShapeAppearance">@style/ShapeAppearance.M3.Sys.Shape.Corner.Full</item>
+        <item name="itemShapeFillColor">@color/m3_navigation_item_background_color</item>
+        <item name="itemShapeInsetBottom">0.0dip</item>
+        <item name="itemShapeInsetEnd">12.0dip</item>
+        <item name="itemShapeInsetStart">12.0dip</item>
+        <item name="itemShapeInsetTop">0.0dip</item>
+        <item name="itemTextAppearance">?textAppearanceLabelLarge</item>
+        <item name="itemTextColor">@color/m3_navigation_item_text_color</item>
+        <item name="itemVerticalPadding">4.0dip</item>
+        <item name="materialThemeOverlay">@style/ThemeOverlay.Material3.NavigationView</item>
+        <item name="subheaderColor">?colorOnSurfaceVariant</item>
+        <item name="subheaderInsetEnd">28.0dip</item>
+        <item name="subheaderInsetStart">28.0dip</item>
+        <item name="subheaderTextAppearance">?textAppearanceTitleSmall</item>
+        <item name="topInsetScrimEnabled">false</item>
+        <item name="activeIndicatorLabelPadding">4.0dip</item>
+    </style>
+    
+    <style name="ShapeAppearance.M3.Sys.Shape.Corner.Full" parent="">
+        <item name="cornerFamily">?shapeCornerFamily</item>
+        <item name="cornerSize">50.0%</item>
+    </style>
+    
+    <style name="ThemeOverlay.Material3.NavigationView" parent="">
+        <item name="android:listDivider">?colorOutline</item>
+    </style>
 
     <style name="StyleFontChocoCooky">
         <item name="android:fontFamily">@font/chococookyregular</item>

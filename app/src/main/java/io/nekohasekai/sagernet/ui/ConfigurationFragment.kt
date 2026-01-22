@@ -42,6 +42,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.target.Target
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -69,20 +70,7 @@ import io.nekohasekai.sagernet.group.GroupUpdater
 import io.nekohasekai.sagernet.group.RawUpdater
 import io.nekohasekai.sagernet.ktx.*
 import io.nekohasekai.sagernet.plugin.PluginManager
-import io.nekohasekai.sagernet.ui.profile.ChainSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.HttpSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.HysteriaSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.JuicitySettingsActivity
-import io.nekohasekai.sagernet.ui.profile.MieruSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.NaiveSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.SSHSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.ShadowsocksSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.SocksSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.TrojanGoSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.TrojanSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.TuicSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.VMessSettingsActivity
-import io.nekohasekai.sagernet.ui.profile.WireGuardSettingsActivity
+import io.nekohasekai.sagernet.ui.profile.*
 import io.nekohasekai.sagernet.widget.QRCodeDialog
 import io.nekohasekai.sagernet.widget.UndoSnackbarManager
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -116,6 +104,9 @@ import io.nekohasekai.sagernet.utils.showBlur
 import com.neko.speedtest.SpeedTestBottomSheet
 import com.neko.config.V2rayConfigBottomSheet
 import com.neko.expandable.layout.ExpandableView
+import io.nekohasekai.sagernet.ui.bottomsheet.ProfileMenuBottomSheet
+import io.nekohasekai.sagernet.ui.bottomsheet.OtherMenuBottomSheet
+import io.nekohasekai.sagernet.ui.toolbar.ConfigurationMenuController
 
 class ConfigurationFragment @JvmOverloads constructor(
     val select: Boolean = false, val selectedItem: ProxyEntity? = null, val titleRes: Int = 0
@@ -134,6 +125,10 @@ class ConfigurationFragment @JvmOverloads constructor(
     lateinit var adapter: GroupPagerAdapter
     lateinit var tabLayout: TabLayout
     lateinit var groupPager: ViewPager2
+    
+    private lateinit var menuController: ConfigurationMenuController
+
+    private val TAG_HOME_BANNER_DEFAULT = "DEFAULT_BANNER_HOME"
 
     private var bannerLayoutListener: OnPreferenceDataStoreChangeListener? = null
 
@@ -194,25 +189,16 @@ class ConfigurationFragment @JvmOverloads constructor(
          }
          
         if (!select) {
-            toolbar.inflateMenu(R.menu.add_profile_menu)
-            toolbar.setOnMenuItemClickListener(this)
+            menuController = ConfigurationMenuController(
+                toolbar = toolbar,
+                fragmentManager = childFragmentManager,
+                fragment = this
+            )
         } else {
             toolbar.setTitle(titleRes)
             toolbar.setNavigationIcon(R.drawable.ic_navigation_close)
             toolbar.setNavigationOnClickListener {
                 requireActivity().finish()
-            }
-        }
-
-        val searchView = toolbar.findViewById<SearchView>(R.id.action_search)
-        if (searchView != null) {
-            searchView.setOnQueryTextListener(this)
-            searchView.maxWidth = Int.MAX_VALUE
-
-            searchView.setOnQueryTextFocusChangeListener { _, hasFocus ->
-                if (!hasFocus) {
-                    cancelSearch(searchView)
-                }
             }
         }
 
@@ -259,6 +245,27 @@ class ConfigurationFragment @JvmOverloads constructor(
         }
 
         DataStore.profileCacheStore.registerChangeListener(this)
+    }
+
+    fun setupSearchView() {
+        val searchView = toolbar.findViewById<SearchView>(R.id.action_search)
+        if (searchView != null) {
+            searchView.setOnQueryTextListener(this)
+            searchView.maxWidth = Int.MAX_VALUE
+
+            searchView.setOnQueryTextFocusChangeListener { _, hasFocus ->
+                if (!hasFocus) {
+                    cancelSearch(searchView)
+                }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::menuController.isInitialized) {
+            menuController.refresh()
+        }
     }
 
     override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
@@ -389,7 +396,7 @@ class ConfigurationFragment @JvmOverloads constructor(
 
     private fun updateGroupOrder(order: Int) {
         val fragment = getCurrentGroupFragment() ?: return
-        if (fragment.proxyGroup.order == order) return // Tidak ada perubahan
+        if (fragment.proxyGroup.order == order) return
 
         runOnDefaultDispatcher {
             fragment.proxyGroup.order = order
@@ -1510,9 +1517,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             val trafficText: TextView = view.findViewById(R.id.traffic_text)
             val selectedView: LinearLayout = view.findViewById(R.id.selected_view)
             val editButton: ImageView = view.findViewById(R.id.edit)
-            val shareLayout: LinearLayout = view.findViewById(R.id.share)
-            val shareLayer: LinearLayout = view.findViewById(R.id.share_layer)
-            val shareButton: ImageView = view.findViewById(R.id.shareIcon)
+            val shareButton: ImageView = view.findViewById(R.id.share)
             val removeButton: ImageView = view.findViewById(R.id.remove)
 
             fun bind(proxyEntity: ProxyEntity, trafficData: TrafficData? = null) {
@@ -1649,12 +1654,12 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
 
                 val selectOrChain = select || proxyEntity.type == ProxyEntity.TYPE_CHAIN
-                shareLayout.isGone = selectOrChain
+                shareButton.isGone = selectOrChain
                 editButton.isGone = select
                 removeButton.isGone = select
 
                 proxyEntity.nekoBean?.apply {
-                    shareLayout.isGone = true
+                    shareButton.isGone = true
                 }
 
                 runOnDefaultDispatcher {
@@ -1695,12 +1700,8 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                     if (!(select || proxyEntity.type == ProxyEntity.TYPE_CHAIN)) {
                         onMainDispatcher {
-                            shareLayer.setBackgroundColor(Color.TRANSPARENT)
-                            shareButton.setImageResource(R.drawable.ic_social_share)
-                            shareButton.setColorFilter(shareButton.context.getColorAttr(R.attr.colorOnSurface))
-                            shareButton.isVisible = true
-
-                            shareLayout.setOnClickListener {
+                            shareButton.isVisible = true                            
+                            shareButton.setOnClickListener {
                                 showShare(it)
                             }
                         }
@@ -1780,21 +1781,12 @@ class ConfigurationFragment @JvmOverloads constructor(
         searchView.clearFocus()
     }
 
-    private fun loadBannerImage(uri: Uri) {
-        val bannerImageView = view?.findViewById<ImageView>(R.id.img_banner_home)
-        bannerImageView?.let {
-            Glide.with(this)
-                .load(uri)
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .dontAnimate()
-                .into(it)
-        }
-    }
-
     private fun setupBannerLayoutController() {
-        val linear = requireView().findViewById<View>(R.id.card_expandable) // Ini Card Header/Trigger
-        val expandableView = requireView().findViewById<ExpandableView>(R.id.expandable_view) // Ini Konten (Speedtest/Config)
+        val linear = requireView().findViewById<View>(R.id.card_expandable) 
+        val expandableView = requireView().findViewById<ExpandableView>(R.id.expandable_view) 
         val bannerImageView = requireView().findViewById<ImageView>(R.id.img_banner_home)
+        
+        bannerImageView?.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
         fun updateBannerSize() {
             bannerImageView?.apply {
@@ -1809,19 +1801,28 @@ class ConfigurationFragment @JvmOverloads constructor(
         updateBannerSize()
 
         fun loadSavedBanner() {
-            val savedUriString = DataStore.configurationStore.getString("custom_banner_uri", null)
-            if (!savedUriString.isNullOrEmpty()) {
-                try {
-                    val savedUri = Uri.parse(savedUriString)
-                    requireContext().contentResolver.openInputStream(savedUri).use {}
-                    loadBannerImage(savedUri)
-                } catch (e: Exception) {
-                    Logs.w("Failed to load banner URI", e)
-                    DataStore.configurationStore.putString("custom_banner_uri", null)
-                    bannerImageView?.setImageResource(R.drawable.uwu_banner_home)
+            val bannerUriString = DataStore.configurationStore.getString("custom_banner_uri", null)
+            val targetTag = if (bannerUriString.isNullOrBlank()) TAG_HOME_BANNER_DEFAULT else bannerUriString
+            val currentTag = bannerImageView?.tag
+            if (currentTag != targetTag) {
+                if (!bannerUriString.isNullOrBlank()) {
+                	val bannerSavedUriString = Uri.parse(bannerUriString)
+                    bannerImageView?.let {
+                        Glide.with(this)
+                            .load(bannerSavedUriString)
+                            .override(Target.SIZE_ORIGINAL)
+                            .diskCacheStrategy(DiskCacheStrategy.DATA)
+                            .skipMemoryCache(false)
+                            .error(R.drawable.uwu_banner_home)
+                            .into(bannerImageView)
+                    }
+                } else {
+                    bannerImageView?.let {
+                        Glide.with(this).clear(bannerImageView)
+                        bannerImageView.setImageResource(R.drawable.uwu_banner_home)
+                    }
                 }
-            } else {
-                bannerImageView?.setImageResource(R.drawable.uwu_banner_home)
+                bannerImageView?.tag = targetTag
             }
         }
 

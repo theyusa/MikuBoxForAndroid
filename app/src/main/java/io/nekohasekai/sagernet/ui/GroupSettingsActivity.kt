@@ -2,15 +2,11 @@ package io.nekohasekai.sagernet.ui
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.os.Parcelable
-import android.view.LayoutInflater
-import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
@@ -35,14 +31,8 @@ import io.nekohasekai.sagernet.widget.OutboundPreference
 import kotlinx.parcelize.Parcelize
 import com.takisoft.preferencex.SimpleMenuPreference
 import com.google.android.material.appbar.CollapsingToolbarLayout
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import androidx.preference.PreferenceCategory
-import androidx.preference.PreferenceGroup
-import android.widget.ImageView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
+import io.nekohasekai.sagernet.ui.bottomsheet.GroupSettingsMenuBottomSheet
+import io.nekohasekai.sagernet.ui.toolbar.GroupSettingsMenuController
 
 @Suppress("UNCHECKED_CAST")
 class GroupSettingsActivity(
@@ -53,6 +43,8 @@ class GroupSettingsActivity(
 
     private lateinit var frontProxyPreference: OutboundPreference
     private lateinit var landingProxyPreference: OutboundPreference
+    
+    private lateinit var menuController: GroupSettingsMenuController
 
     fun ProxyGroup.init() {
         DataStore.groupName = name ?: ""
@@ -227,12 +219,11 @@ class GroupSettingsActivity(
             finish()
         }
 
-        toolbar.inflateMenu(R.menu.profile_config_menu)
-
-        toolbar.setOnMenuItemClickListener {
-            GroupSettingsMenuBottomSheet().show(supportFragmentManager, GroupSettingsMenuBottomSheet.TAG)
-            true
-        }
+        menuController = GroupSettingsMenuController(
+            toolbar = toolbar,
+            fragmentManager = supportFragmentManager,
+            listener = this
+        )
 
         if (savedInstanceState == null) {
             val editingId = intent.getLongExtra(EXTRA_GROUP_ID, 0L)
@@ -260,6 +251,13 @@ class GroupSettingsActivity(
                     DataStore.profileCacheStore.registerChangeListener(this@GroupSettingsActivity)
                 }
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::menuController.isInitialized) {
+            menuController.refresh()
         }
     }
 
@@ -423,83 +421,5 @@ class GroupSettingsActivity(
                 updateAllCategoryStyles(styleValue, preference)
             }
         }
-    }
-}
-
-class GroupSettingsMenuBottomSheet : BottomSheetDialogFragment() {
-
-    interface OnOptionClickListener {
-        fun onOptionClicked(viewId: Int)
-    }
-
-    private var mListener: OnOptionClickListener? = null
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        if (context is OnOptionClickListener) {
-            mListener = context
-        } else {
-            throw RuntimeException("$context must implement OnOptionClickListener")
-        }
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.uwu_bottom_sheet_apply_and_delete_menu, container, false)
-    }
-
-    override fun onStart() {
-        super.onStart()
-        val sheetDialog = dialog as? BottomSheetDialog
-        sheetDialog?.behavior?.apply {
-            state = BottomSheetBehavior.STATE_EXPANDED
-            skipCollapsed = true
-        }
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        
-        val bannerImageView = view.findViewById<ImageView>(R.id.img_banner_sheet)
-
-        if (bannerImageView != null) {
-            bannerImageView.setImageResource(R.drawable.uwu_banner_image_about)
-
-            val savedUriString = DataStore.configurationStore.getString("custom_sheet_banner_uri", null)
-
-            if (!savedUriString.isNullOrBlank()) {
-                Glide.with(this)
-                    .load(savedUriString)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .dontAnimate()
-                    .into(bannerImageView)
-            }
-        }
-
-        val clickListener = View.OnClickListener {
-            mListener?.onOptionClicked(it.id)
-            dismiss()
-        }
-
-        val actionIds = listOf(
-            R.id.action_apply,
-            R.id.action_delete
-        )
-
-        actionIds.forEach { id ->
-            view.findViewById<View>(id)?.setOnClickListener(clickListener)
-        }
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        mListener = null
-    }
-
-    companion object {
-        const val TAG = "GroupSettingsMenuBottomSheet"
     }
 }

@@ -26,6 +26,8 @@ import io.nekohasekai.sagernet.widget.UndoSnackbarManager
 import io.nekohasekai.sagernet.widget.StatsBar
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.utils.showBlur
+import io.nekohasekai.sagernet.ui.bottomsheet.RouteMenuBottomSheet
+import io.nekohasekai.sagernet.ui.toolbar.RouteMenuController
 
 class RouteFragment : ToolbarFragment(R.layout.layout_route), 
     RouteMenuBottomSheet.OnOptionClickListener {
@@ -34,6 +36,8 @@ class RouteFragment : ToolbarFragment(R.layout.layout_route),
     lateinit var ruleListView: RecyclerView
     lateinit var ruleAdapter: RuleAdapter
     lateinit var undoManager: UndoSnackbarManager<RuleEntity>
+    
+    private lateinit var menuController: RouteMenuController
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -48,12 +52,11 @@ class RouteFragment : ToolbarFragment(R.layout.layout_route),
 
         toolbar = toolbarView
         
-        toolbar.inflateMenu(R.menu.add_route_menu)
-        
-        toolbar.setOnMenuItemClickListener {
-            RouteMenuBottomSheet().show(childFragmentManager, RouteMenuBottomSheet.TAG)
-            true
-        }
+        menuController = RouteMenuController(
+            toolbar = toolbar,
+            fragmentManager = childFragmentManager,
+            listener = this
+        )
 
         ruleListView = view.findViewById(R.id.route_list)
         ruleListView.layoutManager = FixedLinearLayoutManager(ruleListView)
@@ -153,6 +156,13 @@ class RouteFragment : ToolbarFragment(R.layout.layout_route),
             ProfileManager.removeListener(ruleAdapter)
         }
         super.onDestroy()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        if (::menuController.isInitialized) {
+            menuController.refresh()
+        }
     }
 
     override fun onOptionClicked(viewId: Int) {

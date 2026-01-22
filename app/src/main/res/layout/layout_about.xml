@@ -7,25 +7,25 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appbar"
-        android:background="?attr/colorPrimary"
+        android:background="?colorPrimary"
         android:layout_width="fill_parent"
         android:layout_height="200.0dip">
         <com.google.android.material.appbar.CollapsingToolbarLayout
             android:id="@+id/collapsing_toolbar"
-            android:background="?attr/colorPrimary"
+            android:background="?colorPrimary"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             app:collapsedTitleTextColor="?android:textColorPrimaryInverse"
-            app:contentScrim="?attr/colorPrimary"
-            app:expandedTitleTextColor="?android:textColorPrimaryInverse"
-            app:layout_scrollFlags="exitUntilCollapsed|scroll"
-            app:titleCollapseMode="scale"
+            app:contentScrim="?colorPrimary"
             app:expandedTitleMarginEnd="24.0dip"
             app:expandedTitleMarginStart="24.0dip"
+            app:expandedTitleTextColor="?android:textColorPrimaryInverse"
+            app:layout_scrollFlags="exitUntilCollapsed|scroll"
             app:maxLines="2"
+            app:titleCollapseMode="scale"
             style="?collapsingToolbarLayoutStyle">
             <com.google.android.material.appbar.MaterialToolbar
-                android:theme="?attr/actionBarTheme"
+                android:theme="?actionBarTheme"
                 android:id="@+id/toolbar"
                 android:layout_width="fill_parent"
                 android:layout_height="?actionBarSize"
@@ -76,7 +76,7 @@
                             android:layout_marginTop="16.0dip"
                             android:layout_marginRight="16.0dip"
                             android:layout_marginBottom="8.0dip"
-                            app:cardBackgroundColor="?attr/colorCard"
+                            app:cardBackgroundColor="?colorCard"
                             app:cardCornerRadius="28.0dip"
                             app:cardElevation="0.0dip">
                             <LinearLayout
@@ -113,7 +113,7 @@
                                         android:layout_height="150.0dip"
                                         android:layout_marginTop="-20.0dip"
                                         app:lottie_autoPlay="true"
-                                        app:lottie_colorFilter="?attr/colorPrimary"
+                                        app:lottie_colorFilter="?colorPrimary"
                                         app:lottie_loop="true"
                                         app:lottie_rawRes="@raw/uwu_lottie_hexagon" />
                                     <ImageView
@@ -145,7 +145,7 @@
                                     android:foreground="?android:selectableItemBackground"
                                     android:layout_marginStart="12.0dip"
                                     android:layout_marginEnd="12.0dip"
-                                    app:cardBackgroundColor="?attr/colorPrimary"
+                                    app:cardBackgroundColor="?colorPrimary"
                                     app:cardCornerRadius="19.0dip"
                                     app:cardElevation="0.0dip">
                                     <LinearLayout
@@ -161,13 +161,20 @@
                                             android:layout_marginBottom="16.0dip"
                                             android:layout_marginStart="16.0dip"
                                             android:layout_marginEnd="8.0dip">
-                                            <com.android.internal.widget.PreferenceImageView
-                                                android:layout_width="40.0dip"
-                                                android:layout_height="40.0dip"
-                                                android:src="@drawable/uwu_sbuild"
-                                                android:scaleType="fitCenter"
-                                                android:adjustViewBounds="true"
-                                                android:tint="?android:textColorPrimaryInverse" />
+                                            <FrameLayout
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content">
+                                                <com.neko.widget.DynamicShapeImageView2
+                                                    android:layout_width="45.0dip"
+                                                    android:layout_height="45.0dip"
+                                                    android:scaleType="centerCrop" />
+                                                <ImageView
+                                                    android:layout_gravity="center"
+                                                    android:layout_width="25.0dip"
+                                                    android:layout_height="25.0dip"
+                                                    android:src="@drawable/ic_baseline_info_24"
+                                                    android:tint="?colorPrimary" />
+                                            </FrameLayout>
                                         </LinearLayout>
                                         <RelativeLayout
                                             android:paddingTop="16.0dip"
@@ -222,7 +229,7 @@
                                                     android:layout_height="25.0dip"
                                                     android:layout_marginTop="1.0dip"
                                                     android:src="@drawable/uwu_arrow"
-                                                    android:tint="?attr/colorPrimary"
+                                                    android:tint="?colorPrimary"
                                                     android:layout_marginStart="2.0dip" />
                                             </com.google.android.material.card.MaterialCardView>
                                         </LinearLayout>
@@ -237,7 +244,7 @@
                             app:el_duration="900"
                             app:el_expanded="false"
                             app:el_orientation="vertical"
-                            app:el_parallax="1">
+                            app:el_parallax="1.0">
                             <LinearLayout
                                 android:orientation="vertical"
                                 android:layout_width="fill_parent"
@@ -269,7 +276,7 @@
                             android:layout_marginBottom="12.0dip"
                             android:layout_marginStart="12.0dip"
                             android:layout_marginEnd="12.0dip"
-                            app:cardBackgroundColor="?attr/colorSecondaryContainer"
+                            app:cardBackgroundColor="?colorSecondaryContainer"
                             app:cardCornerRadius="19.0dip"
                             app:cardElevation="0.0dip"
                             app:rippleColor="#00000000">
@@ -283,7 +290,7 @@
                                 android:layout_marginLeft="75.0dip"
                                 android:layout_marginTop="-30.0dip"
                                 android:layout_marginRight="75.0dip"
-                                android:backgroundTint="?attr/colorSurfaceContainerLow"
+                                android:backgroundTint="?colorSurfaceContainerLow"
                                 android:layout_marginHorizontal="75.0dip" />
                             <LinearLayout
                                 android:gravity="center"
@@ -300,7 +307,7 @@
                                     android:layout_width="80.0dip"
                                     android:layout_height="80.0dip"
                                     android:src="@drawable/uwu_banner_profile"
-                                    app:siBorderColor="?attr/colorPrimary"
+                                    app:siBorderColor="?colorPrimary"
                                     app:siBorderWidth="3.0dip" />
                                 <FrameLayout
                                     android:layout_width="wrap_content"
@@ -309,7 +316,7 @@
                                     <TextView
                                         android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                                         android:textSize="17.0sp"
-                                        android:textColor="?attr/colorOnSurface"
+                                        android:textColor="?colorOnSurface"
                                         android:gravity="center_horizontal"
                                         android:id="@+id/title"
                                         android:layout_width="wrap_content"
@@ -322,7 +329,7 @@
                                 <TextView
                                     android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleSmall"
                                     android:textSize="12.0sp"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textColor="?colorOnSurfaceVariant"
                                     android:gravity="center_horizontal"
                                     android:id="@+id/summary"
                                     android:layout_width="wrap_content"
@@ -343,7 +350,7 @@
                                 android:layout_marginLeft="75.0dip"
                                 android:layout_marginRight="75.0dip"
                                 android:layout_marginBottom="-30.0dip"
-                                android:backgroundTint="?attr/colorSurfaceContainerLow"
+                                android:backgroundTint="?colorSurfaceContainerLow"
                                 android:layout_marginHorizontal="75.0dip" />
                         </com.neko.elasticview.ElasticView>
                     </com.google.android.material.card.MaterialCardView>
@@ -384,7 +391,7 @@
                                         android:layout_height="fill_parent"
                                         android:paddingStart="3.0dip"
                                         android:paddingEnd="3.0dip"
-                                        android:backgroundTint="?attr/colorSecondaryContainer">
+                                        android:backgroundTint="?colorSecondaryContainer">
                                         <com.google.android.material.card.MaterialCardView
                                             android:gravity="center|top"
                                             android:layout_gravity="bottom|center"
@@ -392,7 +399,7 @@
                                             android:scrollbars="horizontal"
                                             android:layout_width="38.0dip"
                                             android:layout_height="48.0dip"
-                                            app:cardBackgroundColor="?attr/colorPrimary"
+                                            app:cardBackgroundColor="?colorPrimary"
                                             app:cardCornerRadius="8.0dip"
                                             app:cardElevation="0.0dip">
                                             <ImageView
@@ -426,14 +433,14 @@
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                                             android:textSize="17.0sp"
-                                            android:textColor="?attr/colorOnSurface"
+                                            android:textColor="?colorOnSurface"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:text="@string/uwu_miku_gender_title" />
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleSmall"
                                             android:textSize="14.0sp"
-                                            android:textColor="?attr/colorOnSurfaceVariant"
+                                            android:textColor="?colorOnSurfaceVariant"
                                             android:ellipsize="marquee"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
@@ -448,7 +455,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8.0dip"
                                 android:layout_marginEnd="8.0dip"
-                                app:cardBackgroundColor="?attr/colorCard"
+                                app:cardBackgroundColor="?colorCard"
                                 app:cardCornerRadius="28.0dip"
                                 app:cardElevation="0.0dip">
                                 <LinearLayout
@@ -469,7 +476,7 @@
                                         android:layout_height="fill_parent"
                                         android:paddingStart="3.0dip"
                                         android:paddingEnd="3.0dip"
-                                        android:backgroundTint="?attr/colorSecondaryContainer">
+                                        android:backgroundTint="?colorSecondaryContainer">
                                         <com.google.android.material.card.MaterialCardView
                                             android:gravity="center|top"
                                             android:layout_gravity="bottom|center"
@@ -477,7 +484,7 @@
                                             android:scrollbars="horizontal"
                                             android:layout_width="38.0dip"
                                             android:layout_height="48.0dip"
-                                            app:cardBackgroundColor="?attr/colorPrimary"
+                                            app:cardBackgroundColor="?colorPrimary"
                                             app:cardCornerRadius="8.0dip"
                                             app:cardElevation="0.0dip">
                                             <ImageView
@@ -511,14 +518,14 @@
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                                             android:textSize="17.0sp"
-                                            android:textColor="?attr/colorOnSurface"
+                                            android:textColor="?colorOnSurface"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:text="@string/uwu_miku_birthday_title" />
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleSmall"
                                             android:textSize="14.0sp"
-                                            android:textColor="?attr/colorOnSurfaceVariant"
+                                            android:textColor="?colorOnSurfaceVariant"
                                             android:ellipsize="marquee"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
@@ -533,7 +540,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8.0dip"
                                 android:layout_marginEnd="8.0dip"
-                                app:cardBackgroundColor="?attr/colorCard"
+                                app:cardBackgroundColor="?colorCard"
                                 app:cardCornerRadius="28.0dip"
                                 app:cardElevation="0.0dip">
                                 <LinearLayout
@@ -554,7 +561,7 @@
                                         android:layout_height="fill_parent"
                                         android:paddingStart="3.0dip"
                                         android:paddingEnd="3.0dip"
-                                        android:backgroundTint="?attr/colorSecondaryContainer">
+                                        android:backgroundTint="?colorSecondaryContainer">
                                         <com.google.android.material.card.MaterialCardView
                                             android:gravity="center|top"
                                             android:layout_gravity="bottom|center"
@@ -562,7 +569,7 @@
                                             android:scrollbars="horizontal"
                                             android:layout_width="38.0dip"
                                             android:layout_height="48.0dip"
-                                            app:cardBackgroundColor="?attr/colorPrimary"
+                                            app:cardBackgroundColor="?colorPrimary"
                                             app:cardCornerRadius="8.0dip"
                                             app:cardElevation="0.0dip">
                                             <ImageView
@@ -596,14 +603,14 @@
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                                             android:textSize="17.0sp"
-                                            android:textColor="?attr/colorOnSurface"
+                                            android:textColor="?colorOnSurface"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:text="@string/uwu_miku_age_title" />
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleSmall"
                                             android:textSize="14.0sp"
-                                            android:textColor="?attr/colorOnSurfaceVariant"
+                                            android:textColor="?colorOnSurfaceVariant"
                                             android:ellipsize="marquee"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
@@ -639,7 +646,7 @@
                                         android:layout_height="fill_parent"
                                         android:paddingStart="3.0dip"
                                         android:paddingEnd="3.0dip"
-                                        android:backgroundTint="?attr/colorSecondaryContainer">
+                                        android:backgroundTint="?colorSecondaryContainer">
                                         <com.google.android.material.card.MaterialCardView
                                             android:gravity="center|top"
                                             android:layout_gravity="bottom|center"
@@ -647,7 +654,7 @@
                                             android:scrollbars="horizontal"
                                             android:layout_width="38.0dip"
                                             android:layout_height="48.0dip"
-                                            app:cardBackgroundColor="?attr/colorPrimary"
+                                            app:cardBackgroundColor="?colorPrimary"
                                             app:cardCornerRadius="8.0dip"
                                             app:cardElevation="0.0dip">
                                             <ImageView
@@ -681,14 +688,14 @@
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                                             android:textSize="17.0sp"
-                                            android:textColor="?attr/colorOnSurface"
+                                            android:textColor="?colorOnSurface"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:text="@string/uwu_miku_voice_title" />
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleSmall"
                                             android:textSize="14.0sp"
-                                            android:textColor="?attr/colorOnSurfaceVariant"
+                                            android:textColor="?colorOnSurfaceVariant"
                                             android:ellipsize="marquee"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
@@ -703,7 +710,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8.0dip"
                                 android:layout_marginEnd="8.0dip"
-                                app:cardBackgroundColor="?attr/colorCard"
+                                app:cardBackgroundColor="?colorCard"
                                 app:cardCornerRadius="28.0dip"
                                 app:cardElevation="0.0dip">
                                 <LinearLayout
@@ -724,7 +731,7 @@
                                         android:layout_height="fill_parent"
                                         android:paddingStart="3.0dip"
                                         android:paddingEnd="3.0dip"
-                                        android:backgroundTint="?attr/colorSecondaryContainer">
+                                        android:backgroundTint="?colorSecondaryContainer">
                                         <com.google.android.material.card.MaterialCardView
                                             android:gravity="center|top"
                                             android:layout_gravity="bottom|center"
@@ -732,7 +739,7 @@
                                             android:scrollbars="horizontal"
                                             android:layout_width="38.0dip"
                                             android:layout_height="48.0dip"
-                                            app:cardBackgroundColor="?attr/colorPrimary"
+                                            app:cardBackgroundColor="?colorPrimary"
                                             app:cardCornerRadius="8.0dip"
                                             app:cardElevation="0.0dip">
                                             <ImageView
@@ -766,14 +773,14 @@
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                                             android:textSize="17.0sp"
-                                            android:textColor="?attr/colorOnSurface"
+                                            android:textColor="?colorOnSurface"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:text="@string/uwu_miku_weight_title" />
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleSmall"
                                             android:textSize="14.0sp"
-                                            android:textColor="?attr/colorOnSurfaceVariant"
+                                            android:textColor="?colorOnSurfaceVariant"
                                             android:ellipsize="marquee"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
@@ -787,7 +794,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8.0dip"
-                                app:cardBackgroundColor="?attr/colorCard"
+                                app:cardBackgroundColor="?colorCard"
                                 app:cardCornerRadius="28.0dip"
                                 app:cardElevation="0.0dip">
                                 <LinearLayout
@@ -808,7 +815,7 @@
                                         android:layout_height="fill_parent"
                                         android:paddingStart="3.0dip"
                                         android:paddingEnd="3.0dip"
-                                        android:backgroundTint="?attr/colorSecondaryContainer">
+                                        android:backgroundTint="?colorSecondaryContainer">
                                         <com.google.android.material.card.MaterialCardView
                                             android:gravity="center|top"
                                             android:layout_gravity="bottom|center"
@@ -816,7 +823,7 @@
                                             android:scrollbars="horizontal"
                                             android:layout_width="38.0dip"
                                             android:layout_height="48.0dip"
-                                            app:cardBackgroundColor="?attr/colorPrimary"
+                                            app:cardBackgroundColor="?colorPrimary"
                                             app:cardCornerRadius="8.0dip"
                                             app:cardElevation="0.0dip">
                                             <ImageView
@@ -850,14 +857,14 @@
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                                             android:textSize="17.0sp"
-                                            android:textColor="?attr/colorOnSurface"
+                                            android:textColor="?colorOnSurface"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:text="@string/uwu_miku_height_title" />
                                         <TextView
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleSmall"
                                             android:textSize="14.0sp"
-                                            android:textColor="?attr/colorOnSurfaceVariant"
+                                            android:textColor="?colorOnSurfaceVariant"
                                             android:ellipsize="marquee"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
@@ -876,7 +883,7 @@
                         android:layout_marginTop="8.0dip"
                         android:layout_marginRight="16.0dip"
                         android:layout_marginBottom="16.0dip"
-                        app:cardBackgroundColor="?attr/colorCard"
+                        app:cardBackgroundColor="?colorCard"
                         app:cardCornerRadius="28.0dip"
                         app:cardElevation="0.0dip">
                         <LinearLayout
@@ -887,7 +894,7 @@
                             <TextView
                                 android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleSmall"
                                 android:textSize="14.0sp"
-                                android:textColor="?attr/colorOnSurface"
+                                android:textColor="?colorOnSurface"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/license" />

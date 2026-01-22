@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
+    <attr name="mal_toolbarTheme" format="reference"/>
+    <attr name="mal_toolbarPopupTheme" format="reference"/>
+    
+    <attr name="mal_color_primary" format="reference|color" />
+    <attr name="mal_color_secondary" format="reference|color" />
+    <attr name="mal_card_background" format="reference|color" />
+
     <attr name="colorBg" format="color" />
     <attr name="colorIcon" format="color" />
     <attr name="colorCard" format="color" />

@@ -3,7 +3,7 @@
     android:orientation="vertical"
     android:background="@drawable/uwu_background_bottom_sheet"
     android:paddingTop="0.0dip"
-    android:paddingBottom="?attr/dialogPreferredPadding"
+    android:paddingBottom="?dialogPreferredPadding"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -25,7 +25,7 @@
                 android:layout_marginBottom="8.0dip"
                 android:layout_marginStart="16.0dip"
                 android:layout_marginEnd="16.0dip"
-                app:cardBackgroundColor="?attr/colorCard"
+                app:cardBackgroundColor="?colorCard"
                 app:cardCornerRadius="28.0dip"
                 app:cardElevation="0.0dip">
                 <LinearLayout
@@ -56,13 +56,14 @@
                             android:layout_height="fill_parent"
                             android:alpha="0.2" />
                         <com.neko.particlesdrawable.ParticlesView
+                            android:id="@+id/ParticlesView"
                             android:background="#00000000"
                             android:layout_width="fill_parent"
                             android:layout_height="fill_parent"
                             android:layout_centerInParent="true"
-                            app:dotColor="?attr/colorPrimary"
+                            app:dotColor="?colorPrimary"
                             app:frameDelayMillis="10"
-                            app:lineColor="?attr/colorPrimary"
+                            app:lineColor="?colorPrimary"
                             app:lineDistance="86.0dip"
                             app:lineThickness="1.0dip"
                             app:maxDotRadius="4.0dip"
@@ -113,8 +114,8 @@
                                             android:ellipsize="marquee"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:marqueeRepeatLimit="marquee_forever"
-                                            android:singleLine="true" />
+                                            android:singleLine="true"
+                                            android:marqueeRepeatLimit="marquee_forever" />
                                         <com.neko.marquee.text.RandomText
                                             android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                                             android:textSize="14.0sp"
@@ -157,21 +158,21 @@
                     android:layout_marginBottom="16.0dip"
                     android:layout_marginStart="8.0dip"
                     android:layout_marginEnd="8.0dip">
-                    <LinearLayout
-                        android:background="@drawable/uwu_bg_icon"
-                        android:layout_width="45.0dip"
-                        android:layout_height="45.0dip"
-                        android:layout_marginStart="8.0dip"
-                        android:backgroundTint="?attr/colorPrimary">
+                    <FrameLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8.0dip">
+                        <com.neko.widget.DynamicShapeImageView
+                            android:layout_width="45.0dip"
+                            android:layout_height="45.0dip"
+                            android:scaleType="centerCrop" />
                         <ImageView
-                            android:gravity="center"
+                            android:layout_gravity="center"
                             android:layout_width="25.0dip"
                             android:layout_height="25.0dip"
-                            android:layout_marginTop="10.0dip"
                             android:src="@drawable/ic_action_done"
-                            android:tint="?attr/colorIcon"
-                            android:layout_marginStart="10.0dip" />
-                    </LinearLayout>
+                            android:tint="?colorIcon" />
+                    </FrameLayout>
                 </LinearLayout>
                 <LinearLayout
                     android:layout_gravity="center_vertical"
@@ -186,7 +187,7 @@
                     <TextView
                         android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                         android:textSize="17.0sp"
-                        android:textColor="?attr/colorOnSurface"
+                        android:textColor="?colorOnSurface"
                         android:ellipsize="marquee"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -204,7 +205,7 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="28.0dip"
                         android:layout_height="28.0dip"
-                        app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
+                        app:cardBackgroundColor="?colorSurfaceContainerHighest"
                         app:cardCornerRadius="99.0dip"
                         app:cardElevation="0.0dip"
                         app:strokeWidth="0.0dip">
@@ -213,7 +214,7 @@
                             android:layout_height="25.0dip"
                             android:layout_marginTop="1.0dip"
                             android:src="@drawable/uwu_arrow"
-                            android:tint="?attr/colorOnSurfaceVariant"
+                            android:tint="?colorOnSurfaceVariant"
                             android:layout_marginStart="2.0dip" />
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
@@ -243,21 +244,21 @@
                     android:layout_marginBottom="16.0dip"
                     android:layout_marginStart="8.0dip"
                     android:layout_marginEnd="8.0dip">
-                    <LinearLayout
-                        android:background="@drawable/uwu_bg_icon"
-                        android:layout_width="45.0dip"
-                        android:layout_height="45.0dip"
-                        android:layout_marginStart="8.0dip"
-                        android:backgroundTint="?attr/colorPrimary">
+                    <FrameLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8.0dip">
+                        <com.neko.widget.DynamicShapeImageView
+                            android:layout_width="45.0dip"
+                            android:layout_height="45.0dip"
+                            android:scaleType="centerCrop" />
                         <ImageView
-                            android:gravity="center"
+                            android:layout_gravity="center"
                             android:layout_width="25.0dip"
                             android:layout_height="25.0dip"
-                            android:layout_marginTop="10.0dip"
                             android:src="@drawable/ic_action_delete"
-                            android:tint="?attr/colorIcon"
-                            android:layout_marginStart="10.0dip" />
-                    </LinearLayout>
+                            android:tint="?colorIcon" />
+                    </FrameLayout>
                 </LinearLayout>
                 <LinearLayout
                     android:layout_gravity="center_vertical"
@@ -272,7 +273,7 @@
                     <TextView
                         android:textAppearance="@style/TextAppearance.M3.Sys.Typescale.TitleMedium"
                         android:textSize="17.0sp"
-                        android:textColor="?attr/colorOnSurface"
+                        android:textColor="?colorOnSurface"
                         android:ellipsize="marquee"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -290,7 +291,7 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="28.0dip"
                         android:layout_height="28.0dip"
-                        app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
+                        app:cardBackgroundColor="?colorSurfaceContainerHighest"
                         app:cardCornerRadius="99.0dip"
                         app:cardElevation="0.0dip"
                         app:strokeWidth="0.0dip">
@@ -299,7 +300,7 @@
                             android:layout_height="25.0dip"
                             android:layout_marginTop="1.0dip"
                             android:src="@drawable/uwu_arrow"
-                            android:tint="?attr/colorOnSurfaceVariant"
+                            android:tint="?colorOnSurfaceVariant"
                             android:layout_marginStart="2.0dip" />
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
