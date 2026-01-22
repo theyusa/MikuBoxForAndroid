@@ -334,7 +334,6 @@
             app:title="@string/allow_access" />
         
     </PreferenceCategory>
-    
     <PreferenceCategory
         app:title="@string/settings_auto_switch">
         
@@ -377,6 +376,7 @@
             app:useSimpleSummaryProvider="true" />
         
     </PreferenceCategory>
+    
     
     <PreferenceCategory
         app:title="@string/cag_misc">
